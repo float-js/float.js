@@ -1,6 +1,6 @@
 {
   "name": "@float.js/core",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Float.js Core - Ultra Modern Web Framework",
   "type": "module",
   "main": "./dist/index.js",
@@ -31,7 +31,7 @@
   "dependencies": {
     "cac": "^6.7.14",
     "chokidar": "^3.5.3",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.25.0",
     "fast-glob": "^3.3.2",
     "mime-types": "^2.1.35",
     "picocolors": "^1.0.0",

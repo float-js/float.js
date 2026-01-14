@@ -9,7 +9,7 @@
     "start": "float start"
   },
   "dependencies": {
-    "@float/core": "workspace:*",
+    "@float.js/core": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
