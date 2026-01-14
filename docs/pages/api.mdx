@@ -1,0 +1,172 @@
+# API Reference
+
+Complete API documentation for Float.js.
+
+## CLI Commands
+
+### `float dev`
+
+Start the development server.
+
+```bash
+float dev [options]
+```
+
+Options:
+- `-p, --port <number>` - Port number (default: 3000)
+
+### `float build`
+
+Build your application for production.
+
+```bash
+float build [options]
+```
+
+### `float start`
+
+Start the production server.
+
+```bash
+float start [options]
+```
+
+Options:
+- `-p, --port <number>` - Port number (default: 3000)
+
+## Core API
+
+### DevServer
+
+Create and manage a development server programmatically.
+
+```typescript
+import { DevServer } from '@float/core';
+
+const server = new DevServer({
+  port: 3000,
+  root: process.cwd(),
+});
+
+await server.start();
+```
+
+#### Options
+
+- `port` - Server port number
+- `root` - Project root directory
+
+### Router
+
+File-based router for managing application routes.
+
+```typescript
+import { Router } from '@float/core';
+
+const router = new Router(process.cwd());
+await router.scanRoutes();
+```
+
+### build()
+
+Build your application for production.
+
+```typescript
+import { build } from '@float/core';
+
+await build({
+  root: process.cwd(),
+  outDir: './dist',
+});
+```
+
+#### Options
+
+- `root` - Project root directory
+- `outDir` - Output directory (default: 'dist')
+
+## Server API
+
+### renderToStream()
+
+Stream React components to the client.
+
+```typescript
+import { renderToStream } from '@float/core/server';
+
+renderToStream(element, writable, {
+  onShellReady: () => console.log('Shell ready'),
+  onAllReady: () => console.log('All ready'),
+});
+```
+
+### createServer()
+
+Create a production HTTP server.
+
+```typescript
+import { createServer } from '@float/core/server';
+
+const server = createServer({
+  port: 3000,
+  root: process.cwd(),
+});
+
+server.listen(3000);
+```
+
+## Route Components
+
+### Default Export
+
+Every route file must export a default React component:
+
+```tsx
+export default function Page() {
+  return <div>My Page</div>;
+}
+```
+
+### Loader Function
+
+Optional data loading function:
+
+```tsx
+export async function loader() {
+  const data = await fetchData();
+  return data;
+}
+```
+
+## Configuration
+
+### TypeScript
+
+Float.js works with TypeScript out of the box. Recommended `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true
+  }
+}
+```
+
+### Package.json Scripts
+
+Recommended npm scripts:
+
+```json
+{
+  "scripts": {
+    "dev": "float dev",
+    "build": "float build",
+    "start": "float start"
+  }
+}
+```

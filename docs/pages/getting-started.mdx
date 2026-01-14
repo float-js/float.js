@@ -1,0 +1,67 @@
+# Getting Started
+
+This guide will help you create your first Float.js application.
+
+## Prerequisites
+
+- Node.js 18 or later
+- pnpm, npm, or yarn
+
+## Create a New Project
+
+The easiest way to get started is using `create-float`:
+
+```bash
+pnpm create float my-app
+```
+
+You'll be prompted to choose a template:
+
+- **basic** - Simple React app to get started quickly
+- **full** - Full-featured app with file-based routing
+- **api** - API-focused template with backend routes
+
+## Project Structure
+
+After creating your project, you'll see this structure:
+
+```
+my-app/
+├── src/
+│   ├── App.tsx          # Main app component
+│   └── entry-client.tsx # Client entry point
+├── package.json
+├── tsconfig.json
+└── .gitignore
+```
+
+## Development
+
+Navigate to your project and install dependencies:
+
+```bash
+cd my-app
+pnpm install
+```
+
+Start the development server:
+
+```bash
+pnpm dev
+```
+
+Your app will be available at [http://localhost:3000](http://localhost:3000).
+
+## Hot Module Replacement
+
+Float.js includes lightning-fast HMR out of the box. Edit any file in `src/` and see changes instantly - typically in under 50ms.
+
+## TypeScript Support
+
+Float.js includes full TypeScript support with no configuration needed. Just write `.tsx` or `.ts` files and everything works.
+
+## Next Steps
+
+- Learn about [File-based Routing](/routing)
+- Explore the [API Reference](/api)
+- Check out [Deployment options](/deployment)

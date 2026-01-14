@@ -1,0 +1,115 @@
+# File-based Routing
+
+Float.js includes a powerful file-based router that automatically generates routes from your file structure.
+
+## Basic Routing
+
+Create files in `src/pages/` to define routes:
+
+```
+src/pages/
+├── index.tsx       → /
+├── about.tsx       → /about
+└── contact.tsx     → /contact
+```
+
+Each file exports a React component as the default export:
+
+```tsx
+// src/pages/about.tsx
+export default function About() {
+  return <h1>About Page</h1>;
+}
+```
+
+## Nested Routes
+
+Create folders for nested routes:
+
+```
+src/pages/
+├── blog/
+│   ├── index.tsx   → /blog
+│   └── post.tsx    → /blog/post
+└── index.tsx       → /
+```
+
+## Dynamic Routes
+
+Use square brackets for dynamic segments:
+
+```
+src/pages/
+├── blog/
+│   └── [slug].tsx  → /blog/:slug
+└── users/
+    └── [id].tsx    → /users/:id
+```
+
+Access route parameters in your component:
+
+```tsx
+// src/pages/blog/[slug].tsx
+export default function BlogPost() {
+  // Access slug parameter here
+  return <h1>Blog Post</h1>;
+}
+```
+
+## Index Routes
+
+Files named `index.tsx` represent the root of a directory:
+
+```
+src/pages/
+└── blog/
+    ├── index.tsx   → /blog (not /blog/index)
+    └── [slug].tsx  → /blog/:slug
+```
+
+## API Routes
+
+Create API endpoints in `src/pages/api/`:
+
+```
+src/pages/
+└── api/
+    ├── hello.ts    → /api/hello
+    └── users.ts    → /api/users
+```
+
+API routes export a handler function:
+
+```tsx
+// src/pages/api/hello.ts
+export default function handler() {
+  return {
+    message: 'Hello from Float.js API!',
+  };
+}
+```
+
+## Navigation
+
+Use standard HTML links for navigation:
+
+```tsx
+<a href="/about">About</a>
+```
+
+The router automatically handles client-side navigation.
+
+## Data Loading
+
+Load data for your routes using the `loader` function:
+
+```tsx
+export async function loader() {
+  const data = await fetchData();
+  return data;
+}
+
+export default function Page({ data }) {
+  return <div>{data}</div>;
+}
+```

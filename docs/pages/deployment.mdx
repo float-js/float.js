@@ -1,0 +1,141 @@
+# Deployment
+
+Learn how to deploy your Float.js application to production.
+
+## Building for Production
+
+First, build your application:
+
+```bash
+pnpm build
+```
+
+This creates an optimized production build in the `dist/` directory.
+
+## Starting Production Server
+
+Start the production server:
+
+```bash
+pnpm start
+```
+
+The server will run on port 3000 by default. Use the `-p` flag to specify a different port:
+
+```bash
+pnpm start -p 8080
+```
+
+## Deployment Platforms
+
+### Vercel
+
+The easiest way to deploy Float.js is with [Vercel](https://vercel.com):
+
+1. Push your code to GitHub
+2. Import your repository on Vercel
+3. Vercel will automatically detect and deploy your app
+
+### Railway
+
+Deploy to [Railway](https://railway.app):
+
+1. Push your code to GitHub
+2. Create a new project on Railway
+3. Connect your GitHub repository
+4. Railway will automatically build and deploy
+
+### Docker
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source
+COPY . .
+
+# Build
+RUN pnpm build
+
+# Expose port
+EXPOSE 3000
+
+# Start server
+CMD ["pnpm", "start"]
+```
+
+Build and run:
+
+```bash
+docker build -t my-float-app .
+docker run -p 3000:3000 my-float-app
+```
+
+### Node.js Servers
+
+For traditional Node.js hosting:
+
+1. Build your application: `pnpm build`
+2. Copy `dist/`, `node_modules/`, and `package.json` to your server
+3. Set `NODE_ENV=production`
+4. Run `node dist/server.js` or use a process manager like PM2
+
+## Environment Variables
+
+Create a `.env` file for environment-specific configuration:
+
+```bash
+NODE_ENV=production
+PORT=3000
+API_URL=https://api.example.com
+```
+
+Access environment variables in your code:
+
+```typescript
+const apiUrl = process.env.API_URL;
+```
+
+## Performance Tips
+
+### Enable Compression
+
+Use gzip compression for better performance:
+
+```bash
+npm install compression
+```
+
+### CDN for Static Assets
+
+Upload your `public/` directory to a CDN for faster asset delivery.
+
+### Monitoring
+
+Consider adding monitoring tools:
+- [Sentry](https://sentry.io) for error tracking
+- [LogRocket](https://logrocket.com) for session replay
+- [New Relic](https://newrelic.com) for APM
+
+## Health Checks
+
+Add a health check endpoint for load balancers:
+
+```typescript
+// src/pages/api/health.ts
+export default function handler() {
+  return { status: 'ok' };
+}
+```

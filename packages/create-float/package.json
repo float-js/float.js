@@ -1,0 +1,53 @@
+{
+  "name": "create-float",
+  "version": "0.1.0",
+  "description": "Scaffold Float.js applications",
+  "keywords": [
+    "float",
+    "create-app",
+    "scaffold",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/float-js/float-js.git",
+    "directory": "packages/create-float"
+  },
+  "license": "MIT",
+  "author": "float-js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "create-float": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "picocolors": "^1.0.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
