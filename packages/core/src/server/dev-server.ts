@@ -15,6 +15,7 @@ import { renderPage } from './ssr.js';
 import { transformFile } from '../build/transform.js';
 import { FLOAT_INDICATOR_SCRIPT } from '../client/float-indicator.js';
 import { FLOAT_ERROR_OVERLAY } from '../client/error-overlay.js';
+import { generateWelcomePage } from '../client/welcome-page.js';
 
 export interface DevServerOptions {
   port: number;
@@ -161,6 +162,16 @@ ${FLOAT_ERROR_OVERLAY}
 
       // Match route
       const { route, params } = matchRoute(pathname, routes);
+
+      // Show welcome page if no routes configured and visiting root
+      if (!route && pathname === '/' && routes.length === 0) {
+        res.writeHead(200, { 
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache',
+        });
+        res.end(generateWelcomePage());
+        return;
+      }
 
       if (!route) {
         res.writeHead(404, { 'Content-Type': 'text/html' });
