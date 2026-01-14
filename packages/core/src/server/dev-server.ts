@@ -16,6 +16,7 @@ import { transformFile } from '../build/transform.js';
 import { FLOAT_INDICATOR_SCRIPT } from '../client/float-indicator.js';
 import { FLOAT_ERROR_OVERLAY } from '../client/error-overlay.js';
 import { generateWelcomePage } from '../client/welcome-page.js';
+import { generateDocsPage, generateLearnPage, generateExamplesPage } from '../client/docs-pages.js';
 
 export interface DevServerOptions {
   port: number;
@@ -170,6 +171,23 @@ ${FLOAT_ERROR_OVERLAY}
           'Cache-Control': 'no-cache',
         });
         res.end(generateWelcomePage());
+        return;
+      }
+
+      // Internal Float.js pages (docs, learn, examples)
+      if (pathname === '/__docs') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(generateDocsPage());
+        return;
+      }
+      if (pathname === '/__learn') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(generateLearnPage());
+        return;
+      }
+      if (pathname === '/__examples') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(generateExamplesPage());
         return;
       }
 
