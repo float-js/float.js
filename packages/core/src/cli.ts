@@ -27,8 +27,13 @@ async function main() {
   }
 
   if (command === '-v' || command === '--version') {
-    const pkg = await import('../package.json', { assert: { type: 'json' } });
-    console.log(pkg.default.version);
+    // Read version from package.json using fs
+    const { readFile } = await import('node:fs/promises');
+    const { fileURLToPath } = await import('node:url');
+    const pkgPath = fileURLToPath(new URL('../package.json', import.meta.url));
+    const pkgContent = await readFile(pkgPath, 'utf-8');
+    const pkg = JSON.parse(pkgContent);
+    console.log(pkg.version);
     process.exit(0);
   }
 

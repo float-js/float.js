@@ -18,10 +18,12 @@ export class DevServer {
   private wss?: WebSocketServer;
   private router: Router;
   private clients: Set<WebSocket> = new Set();
+  private startTime: number;
 
   constructor(config: DevServerConfig) {
     this.config = config;
     this.router = new Router(config.root);
+    this.startTime = Date.now();
   }
 
   async start(): Promise<void> {
@@ -40,8 +42,9 @@ export class DevServer {
     this.setupFileWatcher();
 
     this.server.listen(this.config.port, () => {
+      const elapsed = Date.now() - this.startTime;
       console.log(pc.green(`✓ Dev server running at http://localhost:${this.config.port}`));
-      console.log(pc.dim(`  Ready in ${Date.now()} ms`));
+      console.log(pc.dim(`  Ready in ${elapsed} ms`));
     });
   }
 

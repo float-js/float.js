@@ -1,18 +1,22 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import type { ComponentType } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface RouteModule {
+  // Component type allows any props for flexibility with dynamic routes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default: React.ComponentType<any>;
+  default: ComponentType<any>;
+  // Loader can return any data structure
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loader?: () => Promise<any>;
 }
 
 export interface RouteConfig {
   path: string;
+  // Component type allows any props for flexibility with dynamic routes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.ComponentType<any>;
+  component: ComponentType<any>;
+  // Loader can return any data structure
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loader?: () => Promise<any>;
 }
