@@ -770,7 +770,7 @@ export default function HomePage() {
         </div>
         
         <a href="https://www.npmjs.com/package/@float.js/core" className="hero-badge" target="_blank" rel="noopener">
-          <span className="hero-badge-new">v2.0.1</span>
+          <span className="hero-badge-new">v2.0.3</span>
           Now available on npm — npm install @float.js/core →
         </a>
         
