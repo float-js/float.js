@@ -14,7 +14,7 @@ export function createServer(config: ServerConfig): http.Server {
     // Serve static files from dist
     if (url.pathname.startsWith('/public/') || url.pathname === '/client.js') {
       const filePath = path.join(config.root, 'dist', url.pathname);
-      
+
       fs.readFile(filePath, (err, data) => {
         if (err) {
           res.writeHead(404);

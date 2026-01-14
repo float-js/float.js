@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,11 +5,6 @@ import prompts from 'prompts';
 import pc from 'picocolors';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-interface Answers {
-  projectName: string;
-  template: string;
-}
 
 const TEMPLATES = [
   { title: 'Basic', value: 'basic', description: 'Simple React app' },
@@ -22,7 +16,7 @@ async function main() {
   console.log(pc.bold(pc.cyan('\n⚡ Create Float.js App\n')));
 
   const args = process.argv.slice(2);
-  let projectName = args[0];
+  const projectName = args[0];
 
   const answers = await prompts([
     {
@@ -96,10 +90,7 @@ async function createProject(targetDir: string, template: string): Promise<void>
     },
   };
 
-  await fs.writeFile(
-    path.join(targetDir, 'package.json'),
-    JSON.stringify(packageJson, null, 2)
-  );
+  await fs.writeFile(path.join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2));
 
   // Create tsconfig.json
   const tsConfig = {
@@ -134,7 +125,7 @@ dist
 
 async function copyDir(src: string, dest: string): Promise<void> {
   await fs.mkdir(dest, { recursive: true });
-  
+
   try {
     const entries = await fs.readdir(src, { withFileTypes: true });
 

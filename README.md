@@ -88,14 +88,14 @@ Choose from multiple templates when creating your app:
 
 Float.js is built for speed. Here's how it compares:
 
-| Metric | Float.js | Next.js | Remix |
-|--------|----------|---------|-------|
-| Cold Start | **1.2s** | 3.5s | 2.8s |
-| HMR | **50ms** | 200ms | 150ms |
-| Production Build | **2.1s** | 8.5s | 6.2s |
-| Bundle Size | **45KB** | 85KB | 72KB |
+| Metric           | Float.js | Next.js | Remix |
+| ---------------- | -------- | ------- | ----- |
+| Cold Start       | **1.2s** | 3.5s    | 2.8s  |
+| HMR              | **50ms** | 200ms   | 150ms |
+| Production Build | **2.1s** | 8.5s    | 6.2s  |
+| Bundle Size      | **45KB** | 85KB    | 72KB  |
 
-*Benchmarks run on a standard React app with 10 routes and 50 components*
+_Benchmarks run on a standard React app with 10 routes and 50 components_
 
 ## 🏗️ Project Structure
 

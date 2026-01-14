@@ -1,14 +1,19 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface RouteModule {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default: React.ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loader?: () => Promise<any>;
 }
 
 export interface RouteConfig {
   path: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component: React.ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loader?: () => Promise<any>;
 }
 
@@ -22,7 +27,7 @@ export class Router {
 
   async scanRoutes(): Promise<void> {
     const pagesDir = path.join(this.root, 'src', 'pages');
-    
+
     try {
       await fs.access(pagesDir);
     } catch {
@@ -31,17 +36,22 @@ export class Router {
     }
 
     const files = await this.getFiles(pagesDir);
-    
+
     for (const file of files) {
       const relativePath = path.relative(pagesDir, file);
       const routePath = this.filePathToRoute(relativePath);
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const component = (async () => {
+        const mod = await import(file);
+        return mod.default;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.routes.set(routePath, {
         path: routePath,
-        component: async () => {
-          const mod = await import(file);
-          return mod.default;
-        },
+        component,
       } as any);
     }
   }

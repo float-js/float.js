@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import chokidar from 'chokidar';
 import * as esbuild from 'esbuild';
 import pc from 'picocolors';
@@ -17,7 +17,7 @@ export class DevServer {
   private server?: http.Server;
   private wss?: WebSocketServer;
   private router: Router;
-  private clients: Set<any> = new Set();
+  private clients: Set<WebSocket> = new Set();
 
   constructor(config: DevServerConfig) {
     this.config = config;
@@ -88,7 +88,7 @@ export class DevServer {
   private async serveClientBundle(res: http.ServerResponse): Promise<void> {
     try {
       const entryFile = path.join(this.config.root, 'src', 'entry-client.tsx');
-      
+
       // Check if entry file exists, create default if not
       try {
         await fs.access(entryFile);
@@ -121,7 +121,7 @@ export class DevServer {
     }
   }
 
-  private async serveSSR(pathname: string, res: http.ServerResponse): Promise<void> {
+  private async serveSSR(_pathname: string, res: http.ServerResponse): Promise<void> {
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,7 +151,7 @@ export class DevServer {
 
   private setupFileWatcher(): void {
     const watcher = chokidar.watch(path.join(this.config.root, 'src'), {
-      ignored: /(^|[\/\\])\../,
+      ignored: /(^|[/\\])\../,
       persistent: true,
     });
 

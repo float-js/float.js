@@ -19,14 +19,14 @@ export function renderToStream(
       options.onShellReady?.();
       stream.pipe(writable);
     },
-    onShellError(error) {
-      options.onShellError?.(error);
+    onShellError(error: unknown) {
+      options.onShellError?.(error as Error);
     },
     onAllReady() {
       options.onAllReady?.();
     },
-    onError(error) {
-      options.onError?.(error);
+    onError(error: unknown) {
+      options.onError?.(error as Error);
     },
   });
 }
