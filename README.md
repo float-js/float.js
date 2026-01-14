@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@float/core"><img src="https://img.shields.io/npm/v/@float/core?style=flat-square&color=8b5cf6" alt="npm version"></a>
-  <a href="https://github.com/float-js/float-js/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@float/core?style=flat-square&color=8b5cf6" alt="license"></a>
+  <a href="https://github.com/float-js/float-js/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square" alt="license"></a>
   <a href="https://github.com/float-js/float-js/stargazers"><img src="https://img.shields.io/github/stars/float-js/float-js?style=flat-square&color=8b5cf6" alt="stars"></a>
-  <a href="https://discord.gg/floatjs"><img src="https://img.shields.io/discord/1234567890?style=flat-square&color=8b5cf6&label=discord" alt="discord"></a>
+  <a href="https://github.com/float-js/float-js"><img src="https://img.shields.io/badge/PRs-welcome-8b5cf6?style=flat-square" alt="PRs welcome"></a>
+  <a href="https://github.com/float-js/float-js"><img src="https://img.shields.io/badge/version-0.1.0-8b5cf6?style=flat-square" alt="version"></a>
 </p>
 
 <p align="center">
@@ -178,10 +178,12 @@ pnpm dev
 
 ## 📦 Packages
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| [@float/core](packages/core) | ![npm](https://img.shields.io/npm/v/@float/core?style=flat-square) | Core framework |
-| [create-float](packages/create-float) | ![npm](https://img.shields.io/npm/v/create-float?style=flat-square) | Project scaffolding |
+| Package | Description |
+|---------|-------------|
+| [@float/core](packages/core) | Core framework, CLI, router, SSR engine |
+| [create-float](packages/create-float) | Project scaffolding CLI |
+
+> 📦 **Coming soon to npm!** Packages will be published once v1.0 is ready.
 
 ## 🗺️ Roadmap
 
