@@ -1,0 +1,36 @@
+{
+  "name": "create-float",
+  "version": "0.1.0",
+  "description": "Create Float.js applications with one command",
+  "type": "module",
+  "bin": {
+    "create-float": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "picocolors": "^1.0.0",
+    "prompts": "^2.4.2",
+    "degit": "^2.8.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.3.0",
+    "tsup": "^8.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "create",
+    "float",
+    "scaffold",
+    "cli"
+  ],
+  "license": "MIT"
+}

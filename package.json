@@ -1,0 +1,29 @@
+{
+  "name": "float-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Float.js - Ultra Modern Web Framework",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @float/core dev",
+    "build": "pnpm --filter @float/core build",
+    "test": "pnpm -r test",
+    "clean": "rm -rf packages/*/dist examples/*/dist node_modules"
+  },
+  "keywords": [
+    "float",
+    "framework",
+    "ssr",
+    "react",
+    "modern"
+  ],
+  "author": "Float Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@8.0.0"
+}
