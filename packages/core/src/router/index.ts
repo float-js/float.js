@@ -50,8 +50,8 @@ const DEFAULT_OPTIONS: Required<RouterOptions> = {
  * - app/docs/[...slug]/page.tsx -> /docs/*
  * - app/shop/[[...slug]]/page.tsx -> /shop/*?
  */
-function filePathToUrlPath(filePath: string, appDir: string): { 
-  urlPath: string; 
+function filePathToUrlPath(filePath: string, appDir: string): {
+  urlPath: string;
   params: string[];
   isCatchAll: boolean;
   isOptionalCatchAll: boolean;
@@ -88,7 +88,7 @@ function filePathToUrlPath(filePath: string, appDir: string): {
 
   // Ensure leading slash
   urlPath = '/' + urlPath;
-  
+
   // Clean up double slashes and trailing slash
   urlPath = urlPath.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 
@@ -101,7 +101,7 @@ function filePathToUrlPath(filePath: string, appDir: string): {
 function getRouteType(filePath: string): Route['type'] {
   // Check if file name (without path) matches special file types
   const fileName = filePath.split('/').pop() || filePath;
-  
+
   if (fileName.match(/^route\.(tsx?|jsx?)$/)) return 'api';
   if (fileName.match(/^layout\.(tsx?|jsx?)$/)) return 'layout';
   if (fileName.match(/^error\.(tsx?|jsx?)$/)) return 'error';
@@ -115,22 +115,22 @@ function getRouteType(filePath: string): Route['type'] {
 function findLayouts(routePath: string, allLayouts: Map<string, string>): string[] {
   const layouts: string[] = [];
   const segments = routePath.split('/').filter(Boolean);
-  
+
   // Check from root to deepest
   let currentPath = '';
-  
+
   // Root layout
   if (allLayouts.has('/')) {
     layouts.push(allLayouts.get('/')!);
   }
-  
+
   for (const segment of segments) {
     currentPath += '/' + segment;
     if (allLayouts.has(currentPath)) {
       layouts.push(allLayouts.get(currentPath)!);
     }
   }
-  
+
   return layouts;
 }
 
@@ -155,7 +155,7 @@ export async function scanRoutes(
 
   // First pass: collect all layouts
   const layoutMap = new Map<string, string>();
-  
+
   for (const file of files) {
     const type = getRouteType(file);
     if (type === 'layout') {
@@ -170,13 +170,13 @@ export async function scanRoutes(
 
   for (const file of files) {
     const type = getRouteType(file);
-    
+
     // Skip layouts, errors, loading - they are not matchable routes
     if (type === 'layout' || type === 'error' || type === 'loading') {
       continue;
     }
     const { urlPath, params, isCatchAll, isOptionalCatchAll } = filePathToUrlPath(file, '');
-    
+
     const route: Route = {
       path: opts.basePath + urlPath,
       filePath: file,
@@ -204,8 +204,8 @@ export async function scanRoutes(
 /**
  * Match a URL path to a route
  */
-export function matchRoute(url: string, routes: Route[]): { 
-  route: Route | null; 
+export function matchRoute(url: string, routes: Route[]): {
+  route: Route | null;
   params: Record<string, string>;
 } {
   const urlParts = url.split('/').filter(Boolean);

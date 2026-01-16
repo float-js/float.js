@@ -51,7 +51,7 @@ export async function renderPage(
     // Get metadata if exported
     const metadata = pageModule.metadata || {};
     const generateMetadata = pageModule.generateMetadata;
-    
+
     let pageMetadata = metadata;
     if (generateMetadata) {
       pageMetadata = await generateMetadata({ params });
@@ -65,7 +65,7 @@ export async function renderPage(
 
     // Build component tree with layouts
     let element: React.ReactElement = React.createElement(PageComponent, props);
-    
+
     // Wrap with layouts (innermost to outermost)
     for (let i = layouts.length - 1; i >= 0; i--) {
       const Layout = layouts[i];
@@ -87,8 +87,10 @@ export async function renderPage(
 
     return html;
 
-  } catch (error) {
-    console.error('SSR Error:', error);
+  } catch (error: any) {
+    if (error.code === 'ERR_MODULE_NOT_FOUND' || error.message.includes('Cannot find module')) {
+      console.error(`[Float SSR] Module Resolution Failed: ${route.path}`);
+    }
     throw error;
   }
 }
@@ -109,7 +111,7 @@ export async function renderPageStream(
 
   return new Promise((resolve, reject) => {
     let html = '';
-    
+
     const writable = new Writable({
       write(chunk, _encoding, callback) {
         html += chunk.toString();
@@ -154,7 +156,7 @@ interface HtmlDocumentOptions {
  */
 function generateHtmlDocument(options: HtmlDocumentOptions): string {
   const { content, metadata, hmrScript, isDev, styles = '', scripts = [] } = options;
-  
+
   // Handle title which can be string or object with default/template
   let title = 'Float.js App';
   if (metadata.title) {
@@ -164,7 +166,7 @@ function generateHtmlDocument(options: HtmlDocumentOptions): string {
       title = metadata.title.default;
     }
   }
-  
+
   const description = metadata.description || '';
   const charset = metadata.charset || 'utf-8';
   const viewport = metadata.viewport || 'width=device-width, initial-scale=1';
@@ -243,8 +245,8 @@ function generateMetaTags(metadata: Record<string, any>): string {
 
   // Robots
   if (metadata.robots) {
-    const robots = typeof metadata.robots === 'string' 
-      ? metadata.robots 
+    const robots = typeof metadata.robots === 'string'
+      ? metadata.robots
       : Object.entries(metadata.robots).map(([k, v]) => v ? k : `no${k}`).join(', ');
     tags.push(`<meta name="robots" content="${escapeHtml(robots)}">`);
   }
