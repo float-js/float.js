@@ -314,7 +314,7 @@ export default function RootLayout({ children }) {
 export default function HomePage() {
   return (
     <>
-      <style jsx>{\`
+      <style>{\`
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
