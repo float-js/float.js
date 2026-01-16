@@ -90,6 +90,9 @@ export async function transformFile(filePath: string, useCache: boolean = true):
   let code = result.code;
   code = rewriteImports(code, path.dirname(absolutePath));
   
+  // Remove CSS imports (CSS is handled separately by the server)
+  code = code.replace(/import\s+['"][^'"]*\.css['"];?/g, '');
+  
   fs.writeFileSync(tempFile, code);
 
   try {
