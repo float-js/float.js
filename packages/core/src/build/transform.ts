@@ -4,6 +4,7 @@
  */
 
 import * as esbuild from 'esbuild';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -37,7 +38,7 @@ export async function transformFile(filePath: string, useCache: boolean = true):
   if (useCache) {
     const cache = getCache();
     const source = fs.readFileSync(absolutePath, 'utf-8');
-    const sourceHash = require('crypto').createHash('sha256').update(source).digest('hex').slice(0, 16);
+    const sourceHash = crypto.createHash('sha256').update(source).digest('hex').slice(0, 16);
     const cacheKey = `transform_${absolutePath}_${sourceHash}`;
     
     if (cache.has(cacheKey)) {
@@ -101,7 +102,7 @@ export async function transformFile(filePath: string, useCache: boolean = true):
     // Save to persistent cache if enabled
     if (useCache) {
       const cache = getCache();
-      const sourceHash = require('crypto').createHash('sha256').update(source).digest('hex').slice(0, 16);
+      const sourceHash = crypto.createHash('sha256').update(source).digest('hex').slice(0, 16);
       const cacheKey = `transform_${absolutePath}_${sourceHash}`;
       cache.set(cacheKey, code, source);
     }

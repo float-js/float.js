@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * create-float
  * Create Float.js applications with one command
