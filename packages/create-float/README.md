@@ -1,5 +1,10 @@
 # create-float
 
+[![npm version](https://img.shields.io/npm/v/create-float.svg?style=flat)](https://www.npmjs.com/package/create-float)
+[![npm downloads](https://img.shields.io/npm/dw/create-float.svg?style=flat)](https://www.npmjs.com/package/create-float)
+[![license](https://img.shields.io/npm/l/create-float.svg?style=flat)](https://github.com/float-js/float.js/blob/main/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/float-js/float.js/pulls)
+
 The easiest way to get started with Float.js.
 
 ## Usage

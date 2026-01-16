@@ -1,5 +1,11 @@
 # Float.js ⚡
 
+[![npm version](https://img.shields.io/npm/v/@float.js/core.svg?style=flat)](https://www.npmjs.com/package/@float.js/core)
+[![npm downloads](https://img.shields.io/npm/dw/@float.js/core.svg?style=flat)](https://www.npmjs.com/package/@float.js/core)
+[![license](https://img.shields.io/npm/l/@float.js/core.svg?style=flat)](https://github.com/float-js/float.js/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/float-js/float.js.svg?style=social&label=Star)](https://github.com/float-js/float.js)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/float-js/float.js/pulls)
+
 > Ultra Modern Web Framework for React
 
 Float.js is a blazing-fast, full-stack React framework with file-based routing, server-side rendering, and an exceptional developer experience.
