@@ -32,3 +32,7 @@ coverage/
 
 # Misc
 *.tgz
+
+# Test directories
+test-*
+*.backup
