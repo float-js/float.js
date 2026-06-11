@@ -1,4 +1,4 @@
-import type { FloatConfig } from '@float/core';
+import type { FloatConfig } from '@float.js/core';
 
 const config: FloatConfig = {
   reactStrictMode: true,

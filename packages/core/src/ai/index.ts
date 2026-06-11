@@ -1,244 +1,103 @@
 /**
- * Float.js AI Module
- * Native AI integration with streaming support
+ * Float.js AI Module — the AI-native core of the framework.
+ *
+ * Exposes:
+ *  - Providers (OpenAI, Anthropic, Mock) with tool-calling support
+ *  - `tool()` for typed, validated tools
+ *  - `defineAgent()` — a provider-agnostic agent loop with tool execution
+ *  - RAG primitives (vector store + embedders)
+ *  - Streaming helpers for API routes (text + SSE)
  */
 
-export interface AIProvider {
-  name: string;
-  chat(options: ChatOptions): Promise<AIResponse>;
-  stream(options: ChatOptions): AsyncIterable<string>;
-}
+import {
+  OpenAIProvider,
+  AnthropicProvider,
+  getDefaultProvider,
+  type AIProvider,
+  type ChatOptions,
+  type Message,
+  type AIResponse,
+} from './providers.js';
+import { defineAgent, type Agent, type AgentResult } from './agent.js';
 
-export interface ChatOptions {
-  model?: string;
-  messages: Message[];
-  temperature?: number;
-  maxTokens?: number;
-  system?: string;
-}
+// ---- Provider / type re-exports ----
+export {
+  OpenAIProvider,
+  AnthropicProvider,
+  MockProvider,
+  getDefaultProvider,
+  type AIProvider,
+  type ChatOptions,
+  type Message,
+  type AIResponse,
+  type GenerateOptions,
+  type GenerateResult,
+  type ToolCall,
+  type ToolSpec,
+  type JSONSchema,
+  type JSONSchemaProperty,
+  type Usage,
+  type MockTurn,
+  type MockResponder,
+} from './providers.js';
 
-export interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
+// ---- Tools ----
+export {
+  tool,
+  validateArgs,
+  ToolValidationError,
+  type Tool,
+  type ToolDefinition,
+} from './tools.js';
 
-export interface AIResponse {
-  content: string;
-  model: string;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
+// ---- Agent runtime ----
+export {
+  defineAgent,
+  type Agent,
+  type AgentConfig,
+  type AgentResult,
+  type AgentStep,
+  type ToolInvocation,
+} from './agent.js';
 
-/**
- * OpenAI Provider
- */
-export class OpenAIProvider implements AIProvider {
-  name = 'openai';
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor(options: { apiKey?: string; baseUrl?: string } = {}) {
-    this.apiKey = options.apiKey || process.env.OPENAI_API_KEY || '';
-    this.baseUrl = options.baseUrl || 'https://api.openai.com/v1';
-  }
-
-  async chat(options: ChatOptions): Promise<AIResponse> {
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: options.model || 'gpt-4o-mini',
-        messages: options.system 
-          ? [{ role: 'system', content: options.system }, ...options.messages]
-          : options.messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens,
-      }),
-    });
-
-    const data = await response.json();
-    
-    return {
-      content: data.choices[0].message.content,
-      model: data.model,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-      } : undefined,
-    };
-  }
-
-  async *stream(options: ChatOptions): AsyncIterable<string> {
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: options.model || 'gpt-4o-mini',
-        messages: options.system 
-          ? [{ role: 'system', content: options.system }, ...options.messages]
-          : options.messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens,
-        stream: true,
-      }),
-    });
-
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') return;
-          
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices[0]?.delta?.content;
-            if (content) yield content;
-          } catch {
-            // Skip invalid JSON
-          }
-        }
-      }
-    }
-  }
-}
+// ---- RAG ----
+export {
+  createVectorStore,
+  VectorStore,
+  MockEmbedder,
+  OpenAIEmbedder,
+  cosineSimilarity,
+  type Embedder,
+  type VectorDocument,
+  type SearchResult,
+  type AddInput,
+  type VectorStoreOptions,
+} from './rag.js';
 
 /**
- * Anthropic Provider
- */
-export class AnthropicProvider implements AIProvider {
-  name = 'anthropic';
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor(options: { apiKey?: string; baseUrl?: string } = {}) {
-    this.apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY || '';
-    this.baseUrl = options.baseUrl || 'https://api.anthropic.com/v1';
-  }
-
-  async chat(options: ChatOptions): Promise<AIResponse> {
-    const response = await fetch(`${this.baseUrl}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: options.model || 'claude-3-5-sonnet-20241022',
-        messages: options.messages.filter(m => m.role !== 'system'),
-        system: options.system || options.messages.find(m => m.role === 'system')?.content,
-        max_tokens: options.maxTokens || 4096,
-        temperature: options.temperature ?? 0.7,
-      }),
-    });
-
-    const data = await response.json();
-    
-    return {
-      content: data.content[0].text,
-      model: data.model,
-      usage: data.usage ? {
-        promptTokens: data.usage.input_tokens,
-        completionTokens: data.usage.output_tokens,
-        totalTokens: data.usage.input_tokens + data.usage.output_tokens,
-      } : undefined,
-    };
-  }
-
-  async *stream(options: ChatOptions): AsyncIterable<string> {
-    const response = await fetch(`${this.baseUrl}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: options.model || 'claude-3-5-sonnet-20241022',
-        messages: options.messages.filter(m => m.role !== 'system'),
-        system: options.system || options.messages.find(m => m.role === 'system')?.content,
-        max_tokens: options.maxTokens || 4096,
-        temperature: options.temperature ?? 0.7,
-        stream: true,
-      }),
-    });
-
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const parsed = JSON.parse(line.slice(6));
-            if (parsed.type === 'content_block_delta') {
-              yield parsed.delta.text;
-            }
-          } catch {
-            // Skip invalid JSON
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * AI Instance - Main entry point
+ * High-level AI instance — convenience wrapper for simple text use cases.
+ * Auto-registers a provider from env API keys (falls back to Mock offline).
  */
 class FloatAI {
-  private providers: Map<string, AIProvider> = new Map();
-  private defaultProvider: string = 'openai';
+  private providers = new Map<string, AIProvider>();
+  private defaultProvider: string;
 
   constructor() {
-    // Auto-register providers based on available API keys
-    if (process.env.OPENAI_API_KEY) {
-      this.register(new OpenAIProvider());
-      this.defaultProvider = 'openai';
+    const provider = getDefaultProvider();
+    this.providers.set(provider.name, provider);
+    this.defaultProvider = provider.name;
+    // Register both real providers when their keys exist.
+    if (process.env.OPENAI_API_KEY && !this.providers.has('openai')) {
+      this.providers.set('openai', new OpenAIProvider());
     }
-    if (process.env.ANTHROPIC_API_KEY) {
-      this.register(new AnthropicProvider());
-      if (!process.env.OPENAI_API_KEY) {
-        this.defaultProvider = 'anthropic';
-      }
+    if (process.env.ANTHROPIC_API_KEY && !this.providers.has('anthropic')) {
+      this.providers.set('anthropic', new AnthropicProvider());
     }
   }
 
-  register(provider: AIProvider): void {
+  register(provider: AIProvider): this {
     this.providers.set(provider.name, provider);
+    return this;
   }
 
   use(name: string): this {
@@ -249,62 +108,58 @@ class FloatAI {
     return this;
   }
 
-  private getProvider(): AIProvider {
+  provider(): AIProvider {
     const provider = this.providers.get(this.defaultProvider);
     if (!provider) {
-      throw new Error(`No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY`);
+      throw new Error('No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.');
     }
     return provider;
   }
 
-  /**
-   * Simple chat completion
-   */
+  /** Simple one-shot completion. */
   async chat(prompt: string, options: Partial<ChatOptions> = {}): Promise<string> {
-    const response = await this.getProvider().chat({
+    const response = await this.provider().chat({
       ...options,
       messages: [{ role: 'user', content: prompt }],
     });
     return response.content;
   }
 
-  /**
-   * Chat with message history
-   */
+  /** Completion with full message history. */
   async complete(options: ChatOptions): Promise<AIResponse> {
-    return this.getProvider().chat(options);
+    return this.provider().chat(options);
   }
 
-  /**
-   * Stream chat completion
-   */
+  /** Stream a one-shot completion token by token. */
   stream(prompt: string, options: Partial<ChatOptions> = {}): AsyncIterable<string> {
-    return this.getProvider().stream({
+    return this.provider().stream({
       ...options,
       messages: [{ role: 'user', content: prompt }],
     });
   }
 
-  /**
-   * Stream with message history
-   */
+  /** Stream with full message history. */
   streamChat(options: ChatOptions): AsyncIterable<string> {
-    return this.getProvider().stream(options);
+    return this.provider().stream(options);
+  }
+
+  /** Create an agent bound to this instance's default provider. */
+  agent(config: Parameters<typeof defineAgent>[0] = {}): Agent {
+    return defineAgent({ provider: this.provider(), ...config });
   }
 }
 
-// Singleton instance
+/** Singleton AI instance. */
 export const ai = new FloatAI();
 
 /**
- * Create a streaming response for API routes
+ * Create a plain-text streaming HTTP Response from an async iterable of chunks.
  */
 export function streamResponse(
   iterable: AsyncIterable<string>,
   options: { headers?: Record<string, string> } = {}
 ): Response {
   const encoder = new TextEncoder();
-  
   const stream = new ReadableStream({
     async start(controller) {
       try {
@@ -329,14 +184,13 @@ export function streamResponse(
 }
 
 /**
- * Create a Server-Sent Events response
+ * Create a Server-Sent Events streaming Response from an async iterable.
  */
 export function sseResponse(
   iterable: AsyncIterable<string>,
   options: { headers?: Record<string, string> } = {}
 ): Response {
   const encoder = new TextEncoder();
-  
   const stream = new ReadableStream({
     async start(controller) {
       try {
@@ -355,24 +209,24 @@ export function sseResponse(
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       ...options.headers,
     },
   });
 }
 
 /**
- * AI Action decorator for type-safe AI endpoints
+ * Wrap a handler as a JSON/stream-aware AI API endpoint.
  */
 export function aiAction<T extends Record<string, unknown>>(
   handler: (input: T) => Promise<string> | AsyncIterable<string>
 ) {
   return async (request: Request): Promise<Response> => {
     try {
-      const input = await request.json() as T;
+      const input = (await request.json()) as T;
       const result = handler(input);
 
-      if (Symbol.asyncIterator in Object(result)) {
+      if (result != null && typeof result === 'object' && Symbol.asyncIterator in (result as object)) {
         return streamResponse(result as AsyncIterable<string>);
       }
 
@@ -381,10 +235,44 @@ export function aiAction<T extends Record<string, unknown>>(
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (error) {
+      return new Response(JSON.stringify({ error: (error as Error).message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  };
+}
+
+/**
+ * Expose an Agent as an HTTP API route. POST `{ "input": "..." }` (or a
+ * `messages` array) and get the agent's result back as JSON, including the full
+ * step/tool trace.
+ *
+ * @example
+ * // app/api/agent/route.ts
+ * export const POST = agentHandler(myAgent);
+ */
+export function agentHandler(agent: Agent) {
+  return async (request: Request): Promise<Response> => {
+    try {
+      const body = (await request.json()) as { input?: string; messages?: Message[] };
+      const input = body.messages ?? body.input ?? '';
+      const result: AgentResult = await agent.run(input);
       return new Response(
-        JSON.stringify({ error: (error as Error).message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          text: result.text,
+          steps: result.steps,
+          invocations: result.invocations,
+          usage: result.usage,
+          stoppedEarly: result.stoppedEarly,
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
       );
+    } catch (error) {
+      return new Response(JSON.stringify({ error: (error as Error).message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
   };
 }

@@ -111,7 +111,7 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
         '.jsx': 'jsx',
         '.js': 'js',
       },
-      external: ['react', 'react-dom', '@float/core'],
+      external: ['react', 'react-dom', '@float.js/core'],
     });
   }
 

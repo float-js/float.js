@@ -823,7 +823,7 @@ type RouteHandler = (
  * 
  * @example
  * ```typescript
- * import { typedRoute, f } from '@float/core';
+ * import { typedRoute, f } from '@float.js/core';
  * 
  * export const POST = typedRoute({
  *   body: f.object({

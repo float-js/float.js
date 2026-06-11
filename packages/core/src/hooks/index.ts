@@ -17,3 +17,7 @@ export { useFloatAsync, useFloatDebounce, useFloatThrottle, type AsyncState, typ
 
 // Store
 export { createFloatStore, useFloatStore, combineFloatStores, floatMiddleware, type FloatStore, type FloatStoreOptions } from './use-store.js';
+
+// AI chat / completion (client)
+export { useFloatChat, readStream, type ChatMessage, type UseFloatChatOptions, type UseFloatChatResult } from './use-chat.js';
+export { useFloatCompletion, type UseFloatCompletionOptions, type UseFloatCompletionResult } from './use-completion.js';

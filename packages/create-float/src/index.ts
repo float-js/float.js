@@ -243,7 +243,7 @@ function createProject(projectDir: string, options: ProjectOptions) {
 
   // Create float.config.ts
   const floatConfig = typescript
-    ? `import type { FloatConfig } from '@float/core';
+    ? `import type { FloatConfig } from '@float.js/core';
 
 const config: FloatConfig = {
   reactStrictMode: true,
@@ -251,7 +251,7 @@ const config: FloatConfig = {
 
 export default config;
 `
-    : `/** @type {import('@float/core').FloatConfig} */
+    : `/** @type {import('@float.js/core').FloatConfig} */
 const config = {
   reactStrictMode: true,
 };
@@ -271,7 +271,7 @@ export default config;
   // Create root layout
   const layoutContent = typescript
     ? `import type { ReactNode } from 'react';
-import type { Metadata } from '@float/core';
+import type { Metadata } from '@float.js/core';
 
 export const metadata: Metadata = {
   title: {

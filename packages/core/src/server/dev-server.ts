@@ -13,6 +13,7 @@ import mime from 'mime-types';
 import { scanRoutes, matchRoute, type Route } from '../router/index.js';
 import { renderPage } from './ssr.js';
 import { transformFile } from '../build/transform.js';
+import { buildClientBundle, clearClientBundleCache, CLIENT_BUNDLE_ROUTE } from '../client/hydrate-runtime.js';
 import { FLOAT_INDICATOR_SCRIPT } from '../client/float-indicator.js';
 import { FLOAT_ERROR_OVERLAY } from '../client/error-overlay.js';
 import { generateWelcomePage } from '../client/welcome-page.js';
@@ -179,6 +180,30 @@ ${FLOAT_ERROR_OVERLAY}
         }
       }
 
+      // Serve the client hydration bundle for a route.
+      if (pathname === CLIENT_BUNDLE_ROUTE) {
+        const targetPath = url.searchParams.get('path') || '/';
+        const { route: clientRoute } = matchRoute(targetPath, routes);
+        if (!clientRoute || clientRoute.type !== 'page') {
+          res.writeHead(404, { 'Content-Type': 'application/javascript' });
+          res.end('// Float.js: no page route for hydration');
+          return;
+        }
+        try {
+          const code = await buildClientBundle(clientRoute, { rootDir });
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          });
+          res.end(code);
+        } catch (error) {
+          console.error(pc.red('Client bundle error:'), error);
+          res.writeHead(500, { 'Content-Type': 'application/javascript' });
+          res.end(`console.error(${JSON.stringify('Float.js hydration build failed: ' + (error as Error).message)});`);
+        }
+        return;
+      }
+
       // Serve /_float/ internal assets
       if (pathname.startsWith('/_float/')) {
         // Handle internal float assets
@@ -252,10 +277,11 @@ ${FLOAT_ERROR_OVERLAY}
         return;
       }
 
-      // Render page with SSR
-      const html = await renderPage(route, params, { 
+      // Render page with SSR + client hydration
+      const html = await renderPage(route, params, {
         hmrScript: hmrClientScript,
         isDev: true,
+        pathname,
       });
 
       res.writeHead(200, { 
@@ -346,12 +372,15 @@ ${FLOAT_ERROR_OVERLAY}
 
     watcher.on('change', async (filePath) => {
       console.log(pc.yellow(`\n  ⚡ File changed: ${path.relative(rootDir, filePath)}`));
-      
+
+      // Invalidate the client bundle cache so hydration picks up edits.
+      clearClientBundleCache();
+
       // Check if it's a route file
       if (filePath.includes('/app/')) {
         await refreshRoutes();
       }
-      
+
       notifyClients('reload');
     });
 

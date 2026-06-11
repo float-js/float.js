@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Metadata } from '@float/core';
+import type { Metadata } from '@float.js/core';
 
 export const metadata: Metadata = {
   title: {

@@ -43,7 +43,47 @@ Open [http://localhost:3000](http://localhost:3000) to see your app.
 
 ## Why Float.js?
 
-Float.js is built from the ground up for the modern web. It combines excellent developer experience with production-ready performance.
+Float.js is built from the ground up for the modern web. It combines excellent developer experience with production-ready performance — and it's **AI-native**: agents, tools, RAG and streaming chat UIs are part of the framework, not an afterthought.
+
+### AI-native, in the framework
+
+```ts
+// app/api/agent/route.ts — an agent with a typed tool, exposed as an API route
+import { defineAgent, tool, agentHandler } from '@float.js/core';
+
+const getWeather = tool({
+  name: 'get_weather',
+  description: 'Get the weather for a city',
+  parameters: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] },
+  execute: async ({ city }) => ({ city, tempC: 21 }),
+});
+
+export const POST = agentHandler(
+  defineAgent({ system: 'You are a helpful assistant.', tools: [getWeather] })
+);
+```
+
+```tsx
+// app/page.tsx — a streaming chat UI that actually hydrates and runs in the browser
+import { useFloatChat } from '@float.js/core/client';
+
+export default function Chat() {
+  const { messages, input, setInput, handleSubmit, isLoading } = useFloatChat();
+  return (
+    <form onSubmit={handleSubmit}>
+      {messages.map((m) => <p key={m.id}><b>{m.role}:</b> {m.content}</p>)}
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button disabled={isLoading}>Send</button>
+    </form>
+  );
+}
+```
+
+- **Providers with tool-calling**: OpenAI, Anthropic, and a deterministic `MockProvider` for offline dev/tests.
+- **Agent loop** (`defineAgent`) that calls tools, feeds results back, and iterates — with a full step/tool trace.
+- **RAG** out of the box: `createVectorStore()` + embedders.
+- **Real client hydration** so hooks, realtime and AI streaming run in the browser.
+- Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to use a real model; with no key the runtime falls back to a mock so dev keeps working.
 
 ### Key Features
 

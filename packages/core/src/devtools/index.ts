@@ -6,6 +6,7 @@
  */
 
 import { IncomingMessage, ServerResponse } from 'http';
+import { VERSION } from '../version.js';
 
 // ============================================================================
 // TYPES
@@ -691,7 +692,7 @@ function generateDashboardHTML(state: DevDashboardState): string {
         <div class="logo-icon">⚡</div>
         <div class="logo-text">
           <span class="logo-title">Float.js</span>
-          <span class="logo-version">v2.0.4</span>
+          <span class="logo-version">v${VERSION}</span>
         </div>
       </div>
     </div>

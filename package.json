@@ -1,6 +1,6 @@
 {
   "name": "float-monorepo",
-  "version": "2.2.8",
+  "version": "2.3.0",
   "private": true,
   "description": "Float.js - Ultra Modern Web Framework",
   "workspaces": [
@@ -8,8 +8,8 @@
     "examples/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @float/core dev",
-    "build": "pnpm --filter @float/core build",
+    "dev": "pnpm --filter @float.js/core dev",
+    "build": "pnpm --filter @float.js/core build",
     "build:all": "pnpm -r build",
     "test": "pnpm -r test",
     "clean": "rm -rf packages/*/dist examples/*/dist node_modules",

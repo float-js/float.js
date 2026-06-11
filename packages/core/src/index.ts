@@ -140,21 +140,68 @@ export {
   combineFloatStores,
   floatMiddleware,
   validators,
+  // AI client hooks
+  useFloatChat,
+  useFloatCompletion,
+  readStream,
+  type ChatMessage,
+  type UseFloatChatResult,
+  type UseFloatCompletionResult,
 } from './hooks/index.js';
 
-// AI Module - Native AI integration
+// AI Module - AI-native core (providers, tools, agents, RAG)
 export {
   ai,
   streamResponse,
   sseResponse,
   aiAction,
+  agentHandler,
+  // providers
   OpenAIProvider,
   AnthropicProvider,
+  MockProvider,
+  getDefaultProvider,
+  // tools
+  tool,
+  validateArgs,
+  ToolValidationError,
+  // agent
+  defineAgent,
+  // rag
+  createVectorStore,
+  VectorStore,
+  MockEmbedder,
+  OpenAIEmbedder,
+  cosineSimilarity,
   type AIProvider,
   type ChatOptions,
   type Message,
   type AIResponse,
+  type GenerateOptions,
+  type GenerateResult as AIGenerateResult,
+  type ToolCall,
+  type ToolSpec,
+  type Tool,
+  type ToolDefinition,
+  type Agent,
+  type AgentConfig,
+  type AgentResult,
+  type AgentStep,
+  type ToolInvocation,
+  type Embedder,
+  type VectorDocument,
+  type SearchResult,
 } from './ai/index.js';
+
+// Client hydration runtime
+export {
+  buildClientBundle,
+  generateClientEntry,
+  renderHydrationScripts,
+  clearClientBundleCache,
+  CLIENT_BUNDLE_ROUTE,
+  type ClientBundleOptions,
+} from './client/hydrate-runtime.js';
 
 // Type-Safe API Module
 export {

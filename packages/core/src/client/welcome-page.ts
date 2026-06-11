@@ -1,3 +1,4 @@
+import { VERSION } from '../version.js';
 /**
  * Float.js Welcome Page
  * Professional welcome screen inspired by Next.js
@@ -53,7 +54,7 @@ export function generateWelcomePage(): string {
           <path d="M50 55C50 46.7157 56.7157 40 65 40H155C163.284 40 170 46.7157 170 55C170 63.2843 163.284 70 155 70H65C56.7157 70 50 63.2843 50 55Z" fill="url(#hdr-grad)"/>
         </svg>
         <span class="font-semibold text-lg">Float.js</span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white font-medium">v2.0.6</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white font-medium">v${VERSION}</span>
       </div>
       
       <!-- Nav -->

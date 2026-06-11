@@ -8,11 +8,16 @@ import { renderToPipeableStream, renderToString } from 'react-dom/server';
 import { Writable } from 'node:stream';
 import type { Route } from '../router/index.js';
 import { transformFile } from '../build/transform.js';
+import { renderHydrationScripts } from '../client/hydrate-runtime.js';
 
 export interface RenderOptions {
   hmrScript?: string;
   isDev?: boolean;
   streaming?: boolean;
+  /** Inject client hydration scripts so the page becomes interactive (default: true). */
+  hydrate?: boolean;
+  /** Request pathname, used to load the matching client bundle. */
+  pathname?: string;
 }
 
 export interface PageProps {
@@ -28,7 +33,7 @@ export async function renderPage(
   params: Record<string, string>,
   options: RenderOptions = {}
 ): Promise<string> {
-  const { hmrScript = '', isDev = false, streaming = false } = options;
+  const { hmrScript = '', isDev = false, streaming = false, hydrate = true, pathname } = options;
   void streaming; // Reserved for future streaming implementation
 
   try {
@@ -77,12 +82,19 @@ export async function renderPage(
     // Render to HTML
     const content = renderToString(element);
 
+    // Build client hydration scripts so hooks/state run in the browser.
+    const hydrationScripts =
+      hydrate && route.type === 'page'
+        ? renderHydrationScripts(pathname ?? route.path, { params, searchParams: {} })
+        : '';
+
     // Generate full HTML document
     const html = generateHtmlDocument({
       content,
       metadata: pageMetadata,
       hmrScript: isDev ? hmrScript : '',
       isDev,
+      hydrationScripts,
     });
 
     return html;
@@ -147,13 +159,14 @@ interface HtmlDocumentOptions {
   isDev: boolean;
   styles?: string;
   scripts?: string[];
+  hydrationScripts?: string;
 }
 
 /**
  * Generate full HTML document
  */
 function generateHtmlDocument(options: HtmlDocumentOptions): string {
-  const { content, metadata, hmrScript, isDev, styles = '', scripts = [] } = options;
+  const { content, metadata, hmrScript, isDev, styles = '', scripts = [], hydrationScripts = '' } = options;
   
   // Handle title which can be string or object with default/template
   let title = 'Float.js App';
@@ -210,6 +223,7 @@ function generateHtmlDocument(options: HtmlDocumentOptions): string {
 </head>
 <body>
   <div id="__float">${content}</div>
+  ${hydrationScripts}
   ${hmrScript}
   ${scripts.map(src => `<script src="${src}"></script>`).join('\n  ')}
 </body>

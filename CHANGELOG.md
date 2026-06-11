@@ -5,6 +5,41 @@ All notable changes to Float.js will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-06-10
+
+The **AI-native + hydration** release. Float.js pages are now genuinely
+interactive in the browser, and the framework ships a first-class AI runtime.
+
+### Added
+- **Client hydration runtime** — pages are bundled for the browser with esbuild
+  and hydrated via `hydrateRoot`, so `useState`, client hooks, realtime and AI
+  streaming actually run client-side. Served at `/_float/client.js`, cached by
+  page+layout mtime, with HMR cache invalidation.
+- **AI runtime (`@float.js/core`)**:
+  - Providers with first-class **tool-calling**: `OpenAIProvider`,
+    `AnthropicProvider`, and a deterministic `MockProvider` for offline dev/tests.
+  - `tool()` — typed tools with JSON-schema params and runtime arg validation.
+  - `defineAgent()` — a provider-agnostic **agent loop** that calls tools,
+    feeds results back, and iterates up to `maxSteps`. Returns a full step/tool
+    trace.
+  - **RAG primitives**: `createVectorStore()` with cosine similarity, plus
+    `MockEmbedder` (offline) and `OpenAIEmbedder`.
+  - `agentHandler()` to expose an agent as an API route.
+- **AI client hooks (`@float.js/core/client`)**: `useFloatChat`,
+  `useFloatCompletion`, and `readStream` — streaming chat/completion UIs against
+  your API routes (text or SSE).
+- **Browser-safe client entry** `@float.js/core/client` so server-only code never
+  leaks into the client bundle.
+- **Test suite**: 53 Vitest tests covering router, SSR, hydration bundling, and
+  the full AI runtime (previously zero tests).
+
+### Fixed
+- `version.ts` now auto-syncs from `package.json` (was hardcoded and stale);
+  dev indicator/dashboard versions are no longer hardcoded.
+- Package name mismatch: templates/scripts referenced `@float/core` instead of
+  the published `@float.js/core`.
+- The `examples/basic` app is now a complete, working AI chat demo.
+
 ## [2.2.2] - 2026-01-16
 
 ### Added
