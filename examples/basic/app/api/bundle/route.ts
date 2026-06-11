@@ -1,56 +1,45 @@
 /**
- * Bundle a multi-file React app (in-memory) into a single ESM module and return
- * an HTML document that runs it in an iframe. React is loaded from esm.sh via an
- * import map, so we don't need to ship node_modules to the preview.
+ * Bundle a multi-file React app (in-memory) into a single self-contained script
+ * and return an HTML document that runs it in an iframe.
  *
- * POST { files: { "App.tsx": "...", "Button.tsx": "..." }, entry?: "App.tsx" }
- *  -> { html }  (full document ready for an iframe srcDoc)
+ * React/react-dom are bundled IN (resolved from the app's node_modules) and the
+ * output is a classic IIFE — no import maps, no CDN, no module resolution in the
+ * iframe — so the preview is reliable and works offline.
+ *
+ * POST { files: { "App.tsx": "...", ... }, entry?: "App.tsx" } -> { html }
  */
 import * as esbuild from 'esbuild';
 
-const EXTERNAL = ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'];
-
-const IMPORTMAP = {
-  imports: {
-    react: 'https://esm.sh/react@18.2.0',
-    'react-dom': 'https://esm.sh/react-dom@18.2.0',
-    'react-dom/client': 'https://esm.sh/react-dom@18.2.0/client',
-    'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
-    'react/jsx-dev-runtime': 'https://esm.sh/react@18.2.0/jsx-dev-runtime',
-  },
-};
-
 export async function POST(request: Request): Promise<Response> {
   try {
-    const { files, entry } = (await request.json()) as {
-      files: Record<string, string>;
-      entry?: string;
-    };
+    const { files, entry } = (await request.json()) as { files: Record<string, string>; entry?: string };
     if (!files || typeof files !== 'object' || Object.keys(files).length === 0) {
-      return json({ error: 'No files provided' }, 400);
+      return json({ error: 'No files provided', html: errorShell('No files generated') }, 200);
     }
 
     const entryFile = entry && files[entry] ? entry : pickEntry(files);
+    const root = process.cwd();
 
-    // Virtual entry that mounts the app's default export into #root.
-    const ENTRY = '\0forge-entry';
     const bootstrap = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from ${JSON.stringify('/' + entryFile)};
-createRoot(document.getElementById('root')).render(React.createElement(App));
+const el = document.getElementById('root');
+createRoot(el).render(React.createElement(App));
 `;
 
     const result = await esbuild.build({
-      stdin: { contents: bootstrap, loader: 'tsx', resolveDir: '/', sourcefile: ENTRY },
+      stdin: { contents: bootstrap, loader: 'tsx', resolveDir: root, sourcefile: 'forge-entry.tsx' },
       bundle: true,
       write: false,
-      format: 'esm',
+      format: 'iife',
+      platform: 'browser',
       jsx: 'automatic',
       target: 'es2020',
+      absWorkingDir: root,
       logLevel: 'silent',
-      external: EXTERNAL,
-      plugins: [virtualFiles(files)],
+      define: { 'process.env.NODE_ENV': '"development"' },
+      plugins: [virtualFiles(files, root)],
     });
 
     const js = result.outputFiles?.[0]?.text ?? '';
@@ -61,8 +50,9 @@ createRoot(document.getElementById('root')).render(React.createElement(App));
   }
 }
 
-/** esbuild plugin that serves the provided files from memory. */
-function virtualFiles(files: Record<string, string>) {
+/** esbuild plugin: serve the provided files from memory; everything else (react,
+ *  etc.) falls through to normal node_modules resolution. */
+function virtualFiles(files: Record<string, string>, root: string) {
   const norm = (p: string) => p.replace(/^\.?\//, '');
   const find = (p: string): string | null => {
     const base = norm(p);
@@ -74,16 +64,21 @@ function virtualFiles(files: Record<string, string>) {
     name: 'forge-virtual',
     setup(build: esbuild.PluginBuild) {
       build.onResolve({ filter: /.*/ }, (args) => {
-        if (EXTERNAL.includes(args.path)) return undefined; // let esbuild externalize
-        const key = find(args.path);
-        if (key) return { path: key, namespace: 'forge' };
-        // Unknown bare import -> externalize so the bundle still builds.
-        return { path: args.path, external: true };
+        // Relative/absolute imports that match a generated file -> virtual.
+        if (args.path.startsWith('.') || args.path.startsWith('/')) {
+          const key = find(args.path);
+          if (key) return { path: key, namespace: 'forge' };
+        } else {
+          const key = find(args.path);
+          if (key) return { path: key, namespace: 'forge' };
+        }
+        // Otherwise (react, react-dom, npm pkgs) -> let esbuild resolve normally.
+        return undefined;
       });
       build.onLoad({ filter: /.*/, namespace: 'forge' }, (args) => {
         const ext = args.path.split('.').pop() || 'tsx';
         const loader = (['tsx', 'ts', 'jsx', 'js', 'css'].includes(ext) ? ext : 'tsx') as esbuild.Loader;
-        return { contents: files[args.path] ?? '', loader, resolveDir: '/' };
+        return { contents: files[args.path] ?? '', loader, resolveDir: root };
       });
     },
   };
@@ -104,19 +99,18 @@ function htmlShell(js: string): string {
 <html lang="en"><head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://cdn.tailwindcss.com"></script>
-<script type="importmap">${JSON.stringify(IMPORTMAP)}</script>
-<style>body{margin:0;font-family:system-ui,sans-serif}</style>
+<style>body{margin:0;font-family:system-ui,sans-serif}#root{min-height:100vh}</style>
 </head><body>
 <div id="root"></div>
-<script type="module">
-window.onerror=(m)=>{document.getElementById('root').innerHTML='<pre style="color:#b91c1c;padding:16px;white-space:pre-wrap">'+m+'</pre>'};
-${js}
+<script>
+window.onerror=function(m,s,l,c,err){document.getElementById('root').innerHTML='<pre style="color:#b91c1c;padding:16px;white-space:pre-wrap;font-family:monospace">'+(err&&err.stack||m)+'</pre>';};
 </script>
+<script>${js}</script>
 </body></html>`;
 }
 
 function errorShell(msg: string): string {
-  return `<!DOCTYPE html><html><body style="font-family:monospace;padding:20px;color:#b91c1c">
+  return `<!DOCTYPE html><html><body style="font-family:monospace;padding:20px;color:#b91c1c;background:#fff">
 <h3>Build error</h3><pre style="white-space:pre-wrap">${msg.replace(/</g, '&lt;')}</pre></body></html>`;
 }
 
