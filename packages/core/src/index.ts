@@ -143,10 +143,15 @@ export {
   // AI client hooks
   useFloatChat,
   useFloatCompletion,
+  useFloatAgent,
   readStream,
+  readAgentEvents,
   type ChatMessage,
   type UseFloatChatResult,
   type UseFloatCompletionResult,
+  type UseFloatAgentResult,
+  type AgentStreamEvent,
+  type AgentTraceStep,
 } from './hooks/index.js';
 
 // AI Module - AI-native core (providers, tools, agents, RAG)
@@ -156,6 +161,7 @@ export {
   sseResponse,
   aiAction,
   agentHandler,
+  agentStreamHandler,
   // providers
   OpenAIProvider,
   AnthropicProvider,
@@ -187,6 +193,7 @@ export {
   type AgentConfig,
   type AgentResult,
   type AgentStep,
+  type AgentEvent,
   type ToolInvocation,
   type Embedder,
   type VectorDocument,

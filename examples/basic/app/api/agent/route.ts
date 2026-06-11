@@ -1,4 +1,4 @@
-import { defineAgent, tool, agentHandler } from '@float.js/core';
+import { defineAgent, tool, agentStreamHandler } from '@float.js/core';
 
 const getWeather = tool({
   name: 'get_weather',
@@ -9,4 +9,5 @@ const getWeather = tool({
 
 const agent = defineAgent({ system: 'You are a helpful weather assistant.', tools: [getWeather] });
 
-export const POST = agentHandler(agent);
+// Streams start/step/tool_result/final events over SSE.
+export const POST = agentStreamHandler(agent);

@@ -22,13 +22,19 @@ export {
   combineFloatStores,
   floatMiddleware,
   validators,
-  // AI chat / completion
+  // AI chat / completion / agent
   useFloatChat,
   useFloatCompletion,
+  useFloatAgent,
   readStream,
+  readAgentEvents,
   type ChatMessage,
   type UseFloatChatOptions,
   type UseFloatChatResult,
   type UseFloatCompletionOptions,
   type UseFloatCompletionResult,
+  type UseFloatAgentOptions,
+  type UseFloatAgentResult,
+  type AgentStreamEvent,
+  type AgentTraceStep,
 } from './hooks/index.js';

@@ -24,7 +24,10 @@ interactive in the browser, and the framework ships a first-class AI runtime.
   - `tool()` — typed tools with JSON-schema params and runtime arg validation.
   - `defineAgent()` — a provider-agnostic **agent loop** that calls tools,
     feeds results back, and iterates up to `maxSteps`. Returns a full step/tool
-    trace.
+    trace, and `agent.stream()` emits `start`/`step`/`tool_result`/`final`
+    events live as the loop runs.
+  - `agentStreamHandler()` to expose an agent as a streaming **SSE** route, and
+    the `useFloatAgent` client hook to render the tool trace in real time.
   - **RAG primitives**: `createVectorStore()` with cosine similarity, plus
     `MockEmbedder` (offline) and `OpenAIEmbedder`.
   - `agentHandler()` to expose an agent as an API route.

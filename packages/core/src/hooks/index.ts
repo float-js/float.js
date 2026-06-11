@@ -21,3 +21,4 @@ export { createFloatStore, useFloatStore, combineFloatStores, floatMiddleware, t
 // AI chat / completion (client)
 export { useFloatChat, readStream, type ChatMessage, type UseFloatChatOptions, type UseFloatChatResult } from './use-chat.js';
 export { useFloatCompletion, type UseFloatCompletionOptions, type UseFloatCompletionResult } from './use-completion.js';
+export { useFloatAgent, readAgentEvents, type AgentStreamEvent, type AgentTraceStep, type UseFloatAgentOptions, type UseFloatAgentResult } from './use-agent.js';

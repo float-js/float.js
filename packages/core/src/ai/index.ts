@@ -57,6 +57,7 @@ export {
   type AgentConfig,
   type AgentResult,
   type AgentStep,
+  type AgentEvent,
   type ToolInvocation,
 } from './agent.js';
 
@@ -274,5 +275,55 @@ export function agentHandler(agent: Agent) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  };
+}
+
+/**
+ * Expose an Agent as a streaming SSE API route. POST `{ "input": "..." }` and
+ * receive the agent's events (`start`, `step`, `tool_result`, `final`) live as
+ * they happen — perfect for showing the tool trace in real time with
+ * `useFloatAgent` on the client.
+ *
+ * @example
+ * // app/api/agent/route.ts
+ * export const POST = agentStreamHandler(myAgent);
+ */
+export function agentStreamHandler(agent: Agent) {
+  return async (request: Request): Promise<Response> => {
+    let input: string | Message[] = '';
+    try {
+      const body = (await request.json()) as { input?: string; messages?: Message[] };
+      input = body.messages ?? body.input ?? '';
+    } catch {
+      /* empty body -> empty input */
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const event of agent.stream(input)) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (error) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'error', message: (error as Error).message })}\n\n`
+            )
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
+    });
   };
 }
