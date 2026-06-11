@@ -135,6 +135,21 @@ export function clearClientBundleCache(absolutePath?: string): void {
 /** URL path the server serves client bundles from. */
 export const CLIENT_BUNDLE_ROUTE = '/_float/client.js';
 
+/** Directory (under the static output) where prebuilt client bundles live. */
+export const CLIENT_BUNDLE_DIR = '_float/client';
+
+/**
+ * Stable on-disk filename for a route's prebuilt client bundle.
+ * '/' -> 'index.js', '/blog/:slug' -> 'blog_slug.js'.
+ */
+export function clientBundleFileName(routePath: string): string {
+  const base =
+    routePath === '/' || routePath === ''
+      ? 'index'
+      : routePath.replace(/^\//, '').replace(/[/:*?.[\]]+/g, '_').replace(/_+$/g, '');
+  return `${base || 'index'}.js`;
+}
+
 /**
  * Build the two <script> tags injected into the HTML document to bootstrap
  * hydration: one with serialized props, one loading the route's bundle.

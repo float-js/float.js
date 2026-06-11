@@ -9,6 +9,11 @@ import path from 'node:path';
 import pc from 'picocolors';
 import { scanRoutes, type Route } from '../router/index.js';
 import { renderPage } from '../server/ssr.js';
+import {
+  buildClientBundle,
+  clientBundleFileName,
+  CLIENT_BUNDLE_DIR,
+} from '../client/hydrate-runtime.js';
 
 export interface BuildOptions {
   analyze?: boolean;
@@ -55,38 +60,24 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
 
   console.log(pc.dim(`  Found ${pageRoutes.length} static pages, ${dynamicRoutes.length} dynamic routes, ${apiRoutes.length} API routes`));
 
-  // Build client bundle
-  console.log(pc.dim('  Building client bundle...'));
-  
-  const clientEntryPoints = routes
-    .filter(r => r.type === 'page')
-    .map(r => r.absolutePath);
+  // Build per-route client hydration bundles (minified, React bundled in) so
+  // production pages are interactive. Each bundle hydrates #__float.
+  console.log(pc.dim('  Building client hydration bundles...'));
 
-  if (clientEntryPoints.length > 0) {
-    await esbuild.build({
-      entryPoints: clientEntryPoints,
-      bundle: true,
-      outdir: path.join(outputDir, 'static', '_float'),
-      format: 'esm',
-      splitting: true,
-      minify: opts.minify,
-      sourcemap: opts.sourcemap,
-      target: ['es2020'],
-      platform: 'browser',
-      jsx: 'automatic',
-      loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
-        '.jsx': 'jsx',
-        '.js': 'js',
-        '.css': 'css',
-        '.svg': 'dataurl',
-        '.png': 'dataurl',
-        '.jpg': 'dataurl',
-      },
-      external: ['react', 'react-dom'],
-      metafile: opts.analyze,
-    });
+  const clientBundleDir = path.join(outputDir, 'static', CLIENT_BUNDLE_DIR);
+  fs.mkdirSync(clientBundleDir, { recursive: true });
+  const clientBundleMap = new Map<string, string>(); // route.path -> relative file under static/
+
+  for (const route of routes.filter(r => r.type === 'page')) {
+    try {
+      const code = await buildClientBundle(route, { rootDir, production: opts.minify });
+      const fileName = clientBundleFileName(route.path);
+      fs.writeFileSync(path.join(clientBundleDir, fileName), code);
+      clientBundleMap.set(route.path, `${CLIENT_BUNDLE_DIR}/${fileName}`);
+      console.log(pc.dim(`    ✓ ${route.path} → ${CLIENT_BUNDLE_DIR}/${fileName}`));
+    } catch (error) {
+      console.log(pc.yellow(`    ⚠ ${route.path} client bundle failed: ${(error as Error).message}`));
+    }
   }
 
   // Build server bundle
@@ -136,20 +127,9 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
     }
   }
 
-  // Build API routes for edge
-  console.log(pc.dim('  Building API routes...'));
-
-  for (const route of apiRoutes) {
-    await esbuild.build({
-      entryPoints: [route.absolutePath],
-      bundle: true,
-      outfile: path.join(outputDir, 'server', 'api', `${route.path.replace(/\//g, '_')}.js`),
-      format: 'esm',
-      platform: 'neutral', // Edge compatible
-      target: ['es2020'],
-      minify: true,
-    });
-  }
+  // API routes are executed from source at runtime by the production server
+  // (see prod-server.ts), so there's nothing to pre-bundle here. They're listed
+  // in the manifest below.
 
   // Copy public files
   const publicDir = path.join(rootDir, 'public');
@@ -172,6 +152,7 @@ export async function build(options: BuildOptions = {}): Promise<BuildResult> {
       isOptionalCatchAll: r.isOptionalCatchAll,
       layouts: r.layouts.map(l => path.relative(rootDir, l)),
       prerendered: prerenderedPages.includes(r.path),
+      clientBundle: clientBundleMap.get(r.path),
     })),
     staticPages: prerenderedPages,
     dynamicRoutes: dynamicRoutes.map(r => r.path),

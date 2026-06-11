@@ -14,7 +14,10 @@ interactive in the browser, and the framework ships a first-class AI runtime.
 - **Client hydration runtime** — pages are bundled for the browser with esbuild
   and hydrated via `hydrateRoot`, so `useState`, client hooks, realtime and AI
   streaming actually run client-side. Served at `/_float/client.js`, cached by
-  page+layout mtime, with HMR cache invalidation.
+  page+layout mtime, with HMR cache invalidation. Works in **dev and
+  production**: `float build` pre-builds minified per-route bundles, and the
+  production server serves them and **executes API routes from source**
+  (including AI streaming) instead of stubbing them.
 - **AI runtime (`@float.js/core`)**:
   - Providers with first-class **tool-calling**: `OpenAIProvider`,
     `AnthropicProvider`, and a deterministic `MockProvider` for offline dev/tests.

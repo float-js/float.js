@@ -7,8 +7,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
 import mime from 'mime-types';
+import { Readable } from 'node:stream';
 import { matchRoute, type Route } from '../router/index.js';
 import { renderPage } from './ssr.js';
+import { transformFile } from '../build/transform.js';
+import { buildClientBundle, CLIENT_BUNDLE_ROUTE } from '../client/hydrate-runtime.js';
 
 export interface ProdServerOptions {
   port: number;
@@ -55,6 +58,50 @@ export async function startProductionServer(options: ProdServerOptions): Promise
     const pathname = url.pathname;
 
     try {
+      // Serve the client hydration bundle (prebuilt by `float build`).
+      if (pathname === CLIENT_BUNDLE_ROUTE) {
+        const targetPath = url.searchParams.get('path') || '/';
+        const { route: clientRoute } = matchRoute(targetPath, cachedRoutes);
+        const bundleRel = (clientRoute as any)?.clientBundle as string | undefined;
+
+        // Fast path: serve the prebuilt file.
+        if (bundleRel) {
+          const bundlePath = path.join(distDir, 'static', bundleRel);
+          if (fs.existsSync(bundlePath)) {
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript; charset=utf-8',
+              'Cache-Control': 'public, max-age=31536000, immutable',
+            });
+            res.end(fs.readFileSync(bundlePath));
+            return;
+          }
+        }
+
+        // Fallback: build on demand (e.g. dynamic route not prebuilt).
+        if (clientRoute && clientRoute.type === 'page') {
+          try {
+            const absRoute: Route = {
+              ...clientRoute,
+              absolutePath: path.resolve(rootDir, clientRoute.absolutePath),
+              layouts: (clientRoute.layouts || []).map((l) => path.resolve(rootDir, l)),
+            };
+            const code = await buildClientBundle(absRoute, { rootDir, production: true });
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript; charset=utf-8',
+              'Cache-Control': 'public, max-age=3600',
+            });
+            res.end(code);
+            return;
+          } catch (error) {
+            console.error(pc.red('Client bundle error:'), error);
+          }
+        }
+
+        res.writeHead(404, { 'Content-Type': 'application/javascript' });
+        res.end('// Float.js: no client bundle for this route');
+        return;
+      }
+
       // Serve static assets from .float/static
       const staticPath = path.join(distDir, 'static', pathname);
       if (fs.existsSync(staticPath) && fs.statSync(staticPath).isFile()) {
@@ -98,16 +145,14 @@ export async function startProductionServer(options: ProdServerOptions): Promise
         return;
       }
 
-      // Handle API routes
+      // Handle API routes — executed from source at runtime.
       if (route.type === 'api') {
-        // API routes handled by edge functions in production
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'API route' }));
+        await handleApiRoute(req, res, route, params, rootDir, host, port);
         return;
       }
 
-      // SSR render
-      const html = await renderPage(route, params, { isDev: false });
+      // SSR render (+ client hydration scripts)
+      const html = await renderPage(route, params, { isDev: false, pathname });
       res.writeHead(200, { 
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
@@ -123,5 +168,65 @@ export async function startProductionServer(options: ProdServerOptions): Promise
 
   server.listen(port, host, () => {
     console.log(pc.green(`  ✅ Production server running at ${pc.cyan(`http://${host}:${port}`)}\n`));
+  });
+}
+
+/** Execute an API route's handler from source and stream its Response back. */
+async function handleApiRoute(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  route: Route,
+  params: Record<string, string>,
+  rootDir: string,
+  host: string,
+  port: number
+): Promise<void> {
+  try {
+    const absolutePath = path.isAbsolute(route.absolutePath)
+      ? route.absolutePath
+      : path.resolve(rootDir, route.absolutePath);
+    const mod = await transformFile(absolutePath);
+
+    const method = (req.method || 'GET').toUpperCase();
+    const url = new URL(req.url || '/', `http://${host}:${port}`);
+    const body = method !== 'GET' && method !== 'HEAD' ? await readBody(req) : undefined;
+
+    const request = new Request(url.toString(), {
+      method,
+      headers: Object.fromEntries(
+        Object.entries(req.headers).filter(([, v]) => v !== undefined) as [string, string][]
+      ),
+      body,
+    });
+
+    const handler = mod[method] || mod.default;
+    if (!handler) {
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
+    }
+
+    const response: Response = await handler(request, { params });
+    res.writeHead(response.status, Object.fromEntries(response.headers));
+
+    if (response.body) {
+      // Stream the response body (supports AI streaming / SSE routes).
+      Readable.fromWeb(response.body as any).pipe(res);
+    } else {
+      res.end(await response.text());
+    }
+  } catch (error) {
+    console.error(pc.red('API route error:'), error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Internal server error' }));
+  }
+}
+
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
   });
 }
