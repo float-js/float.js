@@ -36,3 +36,6 @@ coverage/
 # Test directories
 test-*
 *.backup
+
+# Forge published apps
+.forge/

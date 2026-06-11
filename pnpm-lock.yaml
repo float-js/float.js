@@ -13,6 +13,9 @@ importers:
       '@float.js/core':
         specifier: workspace:*
         version: link:../../packages/core
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       react:
         specifier: ^18.2.0
         version: 18.3.1
