@@ -53,9 +53,19 @@ createRoot(el).render(React.createElement(App));
 /** esbuild plugin: serve the provided files from memory; everything else (react,
  *  etc.) falls through to normal node_modules resolution. */
 function virtualFiles(files: Record<string, string>, root: string) {
-  const norm = (p: string) => p.replace(/^\.?\//, '');
-  const find = (p: string): string | null => {
-    const base = norm(p);
+  // Resolve `imp` (e.g. './CalcButton', '../lib/x', '/App.tsx') relative to the
+  // importing file, posix-style.
+  const resolveRel = (fromFile: string, imp: string): string => {
+    const fromDir = fromFile.includes('/') ? fromFile.slice(0, fromFile.lastIndexOf('/')) : '';
+    const parts = imp.startsWith('/') ? [] : fromDir ? fromDir.split('/') : [];
+    for (const seg of imp.split('/')) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') parts.pop();
+      else parts.push(seg);
+    }
+    return parts.join('/');
+  };
+  const find = (base: string): string | null => {
     const cands = [base, `${base}.tsx`, `${base}.ts`, `${base}.jsx`, `${base}.js`, `${base}/index.tsx`, `${base}/index.ts`];
     for (const c of cands) if (files[c] != null) return c;
     return null;
@@ -64,16 +74,17 @@ function virtualFiles(files: Record<string, string>, root: string) {
     name: 'forge-virtual',
     setup(build: esbuild.PluginBuild) {
       build.onResolve({ filter: /.*/ }, (args) => {
-        // Relative/absolute imports that match a generated file -> virtual.
         if (args.path.startsWith('.') || args.path.startsWith('/')) {
-          const key = find(args.path);
+          // Resolve relative to the importing virtual file.
+          const importer = args.namespace === 'forge' ? args.importer : '';
+          const key = find(resolveRel(importer, args.path));
           if (key) return { path: key, namespace: 'forge' };
-        } else {
-          const key = find(args.path);
-          if (key) return { path: key, namespace: 'forge' };
+          return undefined;
         }
-        // Otherwise (react, react-dom, npm pkgs) -> let esbuild resolve normally.
-        return undefined;
+        // Bare import (react, etc.): only intercept if it's actually a generated file.
+        const key = find(args.path.replace(/^\.?\//, ''));
+        if (key) return { path: key, namespace: 'forge' };
+        return undefined; // let esbuild resolve react/react-dom from node_modules
       });
       build.onLoad({ filter: /.*/, namespace: 'forge' }, (args) => {
         const ext = args.path.split('.').pop() || 'tsx';

@@ -331,11 +331,16 @@ ${FLOAT_ERROR_OVERLAY}
 
       // Execute handler
       const response: Response = await handler(request, { params });
-      
-      // Send response
+
+      // Send response — stream the body so AI/SSE routes flush incrementally
+      // instead of buffering until the stream closes.
       res.writeHead(response.status, Object.fromEntries(response.headers));
-      const responseBody = await response.text();
-      res.end(responseBody);
+      if (response.body) {
+        const { Readable } = await import('node:stream');
+        Readable.fromWeb(response.body as any).pipe(res);
+      } else {
+        res.end(await response.text());
+      }
 
     } catch (error) {
       console.error(pc.red('API route error:'), error);
