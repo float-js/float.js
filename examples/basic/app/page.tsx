@@ -102,6 +102,28 @@ export default function Forge() {
   }
   function settle(id: number, icon: string) { setActions((a) => a.map((x) => (x.id === id ? { ...x, icon, spin: false } : x))); }
 
+  // Start a fresh project (keeps history). The next build won't be an edit.
+  function newProject() {
+    setFiles({}); setActiveFile(''); setPreview(''); setRaw('');
+    setActions([]); setPrompt(''); setPublishedUrl('');
+    setTokens(0); setElapsed(0); setFollowStream(true); setView('code');
+    setVIndex(versions.length); // point past the last version so the next build appends
+  }
+  function clearHistory() {
+    setVersions([]); setVIndex(-1);
+    try { localStorage.removeItem('forge-v3'); } catch {}
+    newProject();
+  }
+  function deleteVersion(i: number) {
+    setVersions((cur) => {
+      const next = cur.filter((_, j) => j !== i);
+      persist(next);
+      setVIndex((vi) => (vi >= i ? Math.max(-1, vi - 1) : vi));
+      return next;
+    });
+    if (i === vIndex) newProject();
+  }
+
   const hasBuilt = preview !== '' || Object.keys(files).length > 0;
   const fileList = Object.keys(files);
   const currentSource = mode === 'html' ? (files['index.html'] || raw) : (raw || Object.entries(files).map(([n, c]) => `=== FILE: ${n} ===\n${c}`).join('\n'));
@@ -203,6 +225,10 @@ export default function Forge() {
           ))}
         </div>
 
+        {(hasBuilt || versions.length > 0) && (
+          <button onClick={newProject} disabled={isBuilding} style={S.newBtn}>＋ New build</button>
+        )}
+
         {/* Live telemetry */}
         {(isBuilding || tokens > 0) && (
           <div style={S.telemetry}>
@@ -227,15 +253,19 @@ export default function Forge() {
           <div style={{ marginBottom: 10 }}>
             <div style={S.miniHdr}><span>History</span>
               <span style={{ display: 'flex', gap: 4 }}>
-                <button onClick={() => restore(versions[vIndex - 1], vIndex - 1)} disabled={vIndex <= 0} style={S.ghost}>↶</button>
-                <button onClick={() => restore(versions[vIndex + 1], vIndex + 1)} disabled={vIndex >= versions.length - 1} style={S.ghost}>↷</button>
+                <button onClick={() => restore(versions[vIndex - 1], vIndex - 1)} disabled={vIndex <= 0} style={S.ghost} title="Undo">↶</button>
+                <button onClick={() => restore(versions[vIndex + 1], vIndex + 1)} disabled={vIndex >= versions.length - 1} style={S.ghost} title="Redo">↷</button>
+                <button onClick={clearHistory} disabled={isBuilding} style={S.ghost} title="Clear all">🗑</button>
               </span>
             </div>
             <div style={{ maxHeight: 110, overflow: 'auto' }}>
               {versions.map((v, i) => (
-                <button key={v.id} onClick={() => restore(v, i)} style={i === vIndex ? S.verOn : S.ver}>
-                  <span style={{ opacity: 0.5, marginRight: 6 }}>{v.mode === 'react' ? '⚛' : '⬡'}</span>{v.label || `v${i + 1}`}
-                </button>
+                <div key={v.id} style={S.verRow}>
+                  <button onClick={() => restore(v, i)} style={i === vIndex ? S.verOn : S.ver}>
+                    <span style={{ opacity: 0.5, marginRight: 6 }}>{v.mode === 'react' ? '⚛' : '⬡'}</span>{v.label || `v${i + 1}`}
+                  </button>
+                  <button onClick={() => deleteVersion(i)} disabled={isBuilding} style={S.del} title="Delete">✕</button>
+                </div>
               ))}
             </div>
           </div>
@@ -351,8 +381,11 @@ const S: Record<string, any> = {
   actionTime: { fontSize: 11, color: '#6e7681', fontVariantNumeric: 'tabular-nums' },
   miniHdr: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, color: '#6e7681', margin: '6px 0' },
   ghost: { background: 'transparent', border: '1px solid #30363d', color: '#c9d1d9', borderRadius: 6, padding: '1px 7px', cursor: 'pointer', fontSize: 12 },
-  ver: { display: 'block', width: '100%', textAlign: 'left', padding: '6px 9px', margin: '3px 0', background: '#161b22', border: '1px solid #21262d', borderRadius: 7, cursor: 'pointer', color: '#c9d1d9', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  verOn: { display: 'block', width: '100%', textAlign: 'left', padding: '6px 9px', margin: '3px 0', background: 'rgba(139,92,246,.15)', border: '1px solid rgba(139,92,246,.4)', borderRadius: 7, cursor: 'pointer', color: '#d2c4ff', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  newBtn: { width: '100%', marginTop: 10, padding: '9px', fontSize: 13, fontWeight: 600, color: '#c9d1d9', background: '#161b22', border: '1px solid #30363d', borderRadius: 9, cursor: 'pointer' },
+  verRow: { display: 'flex', alignItems: 'center', gap: 4, margin: '3px 0' },
+  del: { flex: '0 0 auto', background: 'transparent', border: '1px solid #21262d', color: '#6e7681', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', fontSize: 11 },
+  ver: { flex: 1, display: 'block', textAlign: 'left', padding: '6px 9px', background: '#161b22', border: '1px solid #21262d', borderRadius: 7, cursor: 'pointer', color: '#c9d1d9', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  verOn: { flex: 1, display: 'block', textAlign: 'left', padding: '6px 9px', background: 'rgba(139,92,246,.15)', border: '1px solid rgba(139,92,246,.4)', borderRadius: 7, cursor: 'pointer', color: '#d2c4ff', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   example: { display: 'block', width: '100%', textAlign: 'left', padding: '9px 11px', margin: '5px 0', background: '#161b22', border: '1px solid #21262d', borderRadius: 8, cursor: 'pointer', color: '#adbac7', fontSize: 13 },
   composer: { marginTop: 'auto' },
   textarea: { width: '100%', padding: 12, fontSize: 14, color: '#e6edf3', background: '#161b22', border: '1px solid #30363d', borderRadius: 10, resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' },
