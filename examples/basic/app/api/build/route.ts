@@ -52,7 +52,7 @@ export async function POST(request: Request): Promise<Response> {
   const stream = ai.streamChat({
     model: 'claude-sonnet-4-6',
     system,
-    maxTokens: 8000,
+    maxTokens: 16000, // headroom so multi-file apps don't get truncated mid-file
     temperature: 0.4,
     messages: [{ role: 'user', content: userContent }],
   });

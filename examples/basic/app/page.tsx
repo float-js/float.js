@@ -67,6 +67,8 @@ export default function Forge() {
   const [versions, setVersions] = useState<Version[]>([]);
   const [vIndex, setVIndex] = useState(-1);
   const [publishedUrl, setPublishedUrl] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const lastTaskRef = useRef('');
   const idRef = useRef(0);
   const aidRef = useRef(0);
   const startRef = useRef(0);
@@ -132,7 +134,8 @@ export default function Forge() {
   async function build(task: string, isEdit: boolean) {
     if (!task.trim() || isBuilding) return;
     startRef.current = Date.now();
-    setIsBuilding(true); setView('code'); setPublishedUrl(''); setActions([]);
+    lastTaskRef.current = task;
+    setIsBuilding(true); setView('code'); setPublishedUrl(''); setActions([]); setErrorMsg('');
     setTokens(0); setElapsed(0); setFollowStream(true); setRaw('');
     if (!isEdit) { setFiles({}); setActiveFile(''); setPreview(''); }
 
@@ -176,7 +179,7 @@ export default function Forge() {
         const data = await b.json();
         finalPreview = data.html || '<!-- bundle failed -->';
         settle(bundling, data.error ? '✗' : '✓');
-        if (data.error) act('✗', `Bundle error: ${String(data.error).slice(0, 60)}`);
+        if (data.error) { act('✗', `Bundle error`); setErrorMsg(String(data.error)); }
       } else {
         finalPreview = stripFences(acc); setFollowStream(false); setView('preview');
       }
@@ -187,11 +190,21 @@ export default function Forge() {
       setVersions((cur) => { const next = [...cur.slice(0, vIndex + 1), ver]; persist(next); setVIndex(next.length - 1); return next; });
     } catch (e) {
       act('✗', (e as Error).message);
-      setPreview(`<pre style="color:#f85149;padding:16px;font-family:monospace">${(e as Error).message}</pre>`);
+      setErrorMsg((e as Error).message);
       setView('preview');
     } finally {
       setIsBuilding(false);
     }
+  }
+
+  // Re-run the last prompt from scratch.
+  function regenerate() { if (lastTaskRef.current) build(lastTaskRef.current, false); }
+
+  // Ask the model to fix the current (broken) files using the build error.
+  function autofix() {
+    if (!errorMsg) return;
+    const fixPrompt = `The build failed with this error:\n\n${errorMsg}\n\nReturn the FULL corrected set of files. Make sure EVERY file is complete (no truncated JSX or missing closing tags) and that all relative imports resolve to files you include.`;
+    build(fixPrompt, true);
   }
 
   function pickFile(f: string) { setActiveFile(f); setFollowStream(false); }
@@ -303,6 +316,15 @@ export default function Forge() {
           <a href={publishedUrl} target="_blank" rel="noreferrer" style={S.publishedBar}>🌐 Live at <b>{typeof location !== 'undefined' ? location.origin : ''}{publishedUrl}</b> — click to open</a>
         )}
 
+        {errorMsg && !isBuilding && (
+          <div style={S.errorBar}>
+            <span style={S.errIcon}>⚠</span>
+            <span style={S.errText}>Build failed: {errorMsg.split('\n')[0].slice(0, 90)}</span>
+            <button onClick={autofix} style={S.fixBtn}>🔧 Auto-fix</button>
+            <button onClick={regenerate} style={S.regenBtn}>🔄 Regenerate</button>
+          </div>
+        )}
+
         {view === 'code' && fileList.length > 0 && (
           <div style={S.fileTabs}>
             {isBuilding && (
@@ -400,6 +422,11 @@ const S: Record<string, any> = {
   toolBtn: { padding: '6px 10px', fontSize: 13, border: '1px solid #30363d', background: '#161b22', color: '#c9d1d9', borderRadius: 8, cursor: 'pointer' },
   publish: { padding: '6px 13px', fontSize: 13, border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 600 },
   publishedBar: { display: 'block', padding: '8px 14px', background: 'rgba(16,185,129,.1)', borderBottom: '1px solid rgba(16,185,129,.3)', fontSize: 13, color: '#34d399', textDecoration: 'none' },
+  errorBar: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: 'rgba(248,81,73,.1)', borderBottom: '1px solid rgba(248,81,73,.35)', fontSize: 13, color: '#ff9b94' },
+  errIcon: { color: '#f85149' },
+  errText: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  fixBtn: { padding: '5px 11px', fontSize: 12, fontWeight: 600, border: 'none', background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff', borderRadius: 7, cursor: 'pointer', whiteSpace: 'nowrap' },
+  regenBtn: { padding: '5px 11px', fontSize: 12, fontWeight: 600, border: '1px solid #30363d', background: '#161b22', color: '#c9d1d9', borderRadius: 7, cursor: 'pointer', whiteSpace: 'nowrap' },
   fileTabs: { display: 'flex', gap: 2, padding: '6px 8px 0', background: '#0d1117', borderBottom: '1px solid #21262d', overflowX: 'auto' },
   fileTab: { padding: '6px 11px', fontSize: 12, border: 'none', background: 'transparent', color: '#8b949e', borderRadius: '6px 6px 0 0', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'ui-monospace, monospace' },
   fileOn: { padding: '6px 11px', fontSize: 12, border: 'none', borderBottom: '2px solid #8b5cf6', background: '#161b22', color: '#fff', borderRadius: '6px 6px 0 0', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'ui-monospace, monospace' },
