@@ -52,6 +52,22 @@ function highlight(code: string): string {
 }
 
 export default function Forge() {
+  // --- Auth guard: the dashboard requires a login session ---
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [username, setUsername] = useState('');
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('forge-session');
+      if (!s) { window.location.href = '/login'; return; }
+      setUsername(JSON.parse(s).username || '');
+      setAuthed(true);
+    } catch { window.location.href = '/login'; }
+  }, []);
+  function logout() {
+    try { localStorage.removeItem('forge-session'); } catch {}
+    window.location.href = '/login';
+  }
+
   const [mode, setMode] = useState<Mode>('react');
   const [prompt, setPrompt] = useState('');
   const [isBuilding, setIsBuilding] = useState(false);
@@ -221,15 +237,28 @@ export default function Forge() {
   }
   const submit = (e: { preventDefault?: () => void }) => { e.preventDefault?.(); build(prompt, hasBuilt); if (hasBuilt) setPrompt(''); };
 
+  if (authed === null) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1117', color: '#8b949e', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 40, marginBottom: 8 }}>🔨</div>Checking your session…</div>
+      </div>
+    );
+  }
+
   return (
     <div style={S.app}>
       <style>{CSS}</style>
 
       <aside style={S.side}>
         <div style={S.brand}>
-          <span style={S.logo}>🔨</span>
-          <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>Forge</span>
-          <span style={S.pill}>live</span>
+          <a href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={S.logo}>🔨</span>
+            <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>Forge</span>
+          </a>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {username && <span style={{ fontSize: 11.5, color: '#8b949e' }}>@{username}</span>}
+            <button onClick={logout} title="Log out" style={{ fontSize: 11, color: '#8b949e', background: 'transparent', border: '1px solid #30363d', borderRadius: 7, padding: '3px 8px', cursor: 'pointer' }}>Logout</button>
+          </span>
         </div>
 
         <div style={S.modeRow}>

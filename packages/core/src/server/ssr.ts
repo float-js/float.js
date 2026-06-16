@@ -235,45 +235,80 @@ function generateHtmlDocument(options: HtmlDocumentOptions): string {
  */
 function generateMetaTags(metadata: Record<string, any>): string {
   const tags: string[] = [];
+  const meta = (name: string, content: any) => {
+    if (content) tags.push(`<meta name="${name}" content="${escapeHtml(content)}">`);
+  };
+  const prop = (property: string, content: any) => {
+    if (content) tags.push(`<meta property="${property}" content="${escapeHtml(content)}">`);
+  };
+
+  // Standard SEO
+  if (Array.isArray(metadata.keywords)) meta('keywords', metadata.keywords.join(', '));
+  else if (metadata.keywords) meta('keywords', metadata.keywords);
+  if (Array.isArray(metadata.authors)) meta('author', metadata.authors.map((a: any) => a?.name || a).filter(Boolean).join(', '));
+  meta('creator', metadata.creator);
+  meta('publisher', metadata.publisher);
+  meta('application-name', metadata.applicationName);
+  meta('theme-color', metadata.themeColor);
+  meta('color-scheme', metadata.colorScheme);
 
   // Open Graph
   if (metadata.openGraph) {
     const og = metadata.openGraph;
-    if (og.title) tags.push(`<meta property="og:title" content="${escapeHtml(og.title)}">`);
-    if (og.description) tags.push(`<meta property="og:description" content="${escapeHtml(og.description)}">`);
-    if (og.image) tags.push(`<meta property="og:image" content="${escapeHtml(og.image)}">`);
-    if (og.url) tags.push(`<meta property="og:url" content="${escapeHtml(og.url)}">`);
-    if (og.type) tags.push(`<meta property="og:type" content="${escapeHtml(og.type)}">`);
+    prop('og:title', og.title || metadata.title);
+    prop('og:description', og.description || metadata.description);
+    prop('og:url', og.url);
+    prop('og:type', og.type || 'website');
+    prop('og:site_name', og.siteName);
+    prop('og:locale', og.locale);
+    const images = og.images || (og.image ? [og.image] : []);
+    for (const img of images) {
+      const url = typeof img === 'string' ? img : img?.url;
+      if (!url) continue;
+      prop('og:image', url);
+      if (typeof img === 'object') {
+        if (img.width) prop('og:image:width', img.width);
+        if (img.height) prop('og:image:height', img.height);
+        if (img.alt) prop('og:image:alt', img.alt);
+      }
+    }
   }
 
   // Twitter
   if (metadata.twitter) {
     const tw = metadata.twitter;
-    if (tw.card) tags.push(`<meta name="twitter:card" content="${escapeHtml(tw.card)}">`);
-    if (tw.title) tags.push(`<meta name="twitter:title" content="${escapeHtml(tw.title)}">`);
-    if (tw.description) tags.push(`<meta name="twitter:description" content="${escapeHtml(tw.description)}">`);
-    if (tw.image) tags.push(`<meta name="twitter:image" content="${escapeHtml(tw.image)}">`);
+    meta('twitter:card', tw.card || 'summary_large_image');
+    meta('twitter:title', tw.title || metadata.title);
+    meta('twitter:description', tw.description || metadata.description);
+    meta('twitter:site', tw.site);
+    meta('twitter:creator', tw.creator);
+    const tImages = tw.images || (tw.image ? [tw.image] : []);
+    for (const img of tImages) meta('twitter:image', typeof img === 'string' ? img : img?.url);
   }
 
   // Robots
   if (metadata.robots) {
-    const robots = typeof metadata.robots === 'string' 
-      ? metadata.robots 
-      : Object.entries(metadata.robots).map(([k, v]) => v ? k : `no${k}`).join(', ');
-    tags.push(`<meta name="robots" content="${escapeHtml(robots)}">`);
+    const robots = typeof metadata.robots === 'string'
+      ? metadata.robots
+      : Object.entries(metadata.robots)
+          .filter(([k]) => k === 'index' || k === 'follow')
+          .map(([k, v]) => (v ? k : `no${k}`))
+          .join(', ');
+    meta('robots', robots);
   }
 
   // Icons
   if (metadata.icons) {
     const icons = metadata.icons;
-    if (icons.icon) tags.push(`<link rel="icon" href="${escapeHtml(icons.icon)}">`);
-    if (icons.apple) tags.push(`<link rel="apple-touch-icon" href="${escapeHtml(icons.apple)}">`);
+    const iconUrl = typeof icons.icon === 'string' ? icons.icon : Array.isArray(icons.icon) ? icons.icon[0]?.url : undefined;
+    if (iconUrl) tags.push(`<link rel="icon" href="${escapeHtml(iconUrl)}">`);
+    const appleUrl = typeof icons.apple === 'string' ? icons.apple : Array.isArray(icons.apple) ? icons.apple[0]?.url : undefined;
+    if (appleUrl) tags.push(`<link rel="apple-touch-icon" href="${escapeHtml(appleUrl)}">`);
   }
+  if (metadata.manifest) tags.push(`<link rel="manifest" href="${escapeHtml(metadata.manifest)}">`);
 
   // Canonical
-  if (metadata.canonical) {
-    tags.push(`<link rel="canonical" href="${escapeHtml(metadata.canonical)}">`);
-  }
+  if (metadata.canonical) tags.push(`<link rel="canonical" href="${escapeHtml(metadata.canonical)}">`);
 
   return tags.join('\n  ');
 }

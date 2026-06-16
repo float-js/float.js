@@ -2,36 +2,61 @@ import { useEffect, useState } from 'react';
 
 export const metadata = {
   title: 'Sign in · Forge',
-  description: 'Sign in to Forge and start building apps in real time.',
+  description: 'Sign in to Forge to access your dashboard and build apps in real time.',
+  robots: { index: false, follow: false },
 };
 
 type Tab = 'signin' | 'signup';
 
 export default function Login() {
   const [tab, setTab] = useState<Tab>('signin');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [hasAccount, setHasAccount] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const acc = localStorage.getItem('forge-account');
+      setHasAccount(!!acc);
+      setTab(acc ? 'signin' : 'signup');
+      // already logged in -> go straight to the app
+      if (localStorage.getItem('forge-session')) window.location.href = '/app';
+    } catch {}
+  }, []);
 
   const submit = (e: { preventDefault?: () => void }) => {
     e.preventDefault?.();
-    if (!email.trim()) return;
+    setError('');
+    const u = username.trim();
+    if (!u || !password) { setError('Enter a username and password.'); return; }
+    if (u.length < 3) { setError('Username must be at least 3 characters.'); return; }
+    if (password.length < 4) { setError('Password must be at least 4 characters.'); return; }
+
     setLoading(true);
-    // Demo auth: persist a lightweight session and enter the builder.
     try {
-      localStorage.setItem('forge-user', JSON.stringify({ email, name: name || email.split('@')[0], at: Date.now() }));
-    } catch {}
-    setTimeout(() => { if (typeof window !== 'undefined') window.location.href = '/app'; }, 650);
+      if (tab === 'signup') {
+        localStorage.setItem('forge-account', JSON.stringify({ username: u, password }));
+        localStorage.setItem('forge-session', JSON.stringify({ username: u, at: Date.now() }));
+      } else {
+        const raw = localStorage.getItem('forge-account');
+        if (!raw) { setLoading(false); setError('No account found. Create one first.'); setTab('signup'); return; }
+        const acc = JSON.parse(raw);
+        if (acc.username !== u || acc.password !== password) { setLoading(false); setError('Invalid username or password.'); return; }
+        localStorage.setItem('forge-session', JSON.stringify({ username: u, at: Date.now() }));
+      }
+    } catch { setLoading(false); setError('Storage unavailable.'); return; }
+
+    setTimeout(() => { window.location.href = '/app'; }, 500);
   };
 
   return (
     <div style={S.wrap}>
       <style>{CSS}</style>
 
-      {/* Brand panel */}
       <div style={S.brandPanel} className="lg-brand">
         <div style={S.glow} className="lg-glow" />
         <a href="/" style={S.brand}><span style={S.logo}>🔨</span><b style={{ fontSize: 18 }}>Forge</b></a>
@@ -40,59 +65,47 @@ export default function Login() {
           <p style={S.bigSub}>Describe what you want. Watch Forge write it live, run it instantly, and ship it to a URL.</p>
           <ul style={S.points}>
             <li style={S.point}><span style={S.check}>✓</span> Real-time, streaming code generation</li>
-            <li style={S.point}><span style={S.check}>✓</span> Real React apps, bundled & previewed instantly</li>
+            <li style={S.point}><span style={S.check}>✓</span> Real React apps, previewed instantly</li>
             <li style={S.point}><span style={S.check}>✓</span> Publish to a live URL in one click</li>
           </ul>
         </div>
         <div style={S.quote}>“From idea to live app in under a minute.”</div>
       </div>
 
-      {/* Form panel */}
       <div style={S.formPanel}>
-        <div style={{ ...S.formInner, opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(12px)' }}>
+        <div style={{ ...S.glass, opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(12px)' }}>
           <a href="/" style={S.mobileBrand}><span style={{ fontSize: 22 }}>🔨</span><b>Forge</b></a>
 
           <div style={S.tabs}>
-            <button onClick={() => setTab('signin')} style={tab === 'signin' ? S.tabOn : S.tab}>Sign in</button>
-            <button onClick={() => setTab('signup')} style={tab === 'signup' ? S.tabOn : S.tab}>Create account</button>
+            <button onClick={() => { setTab('signin'); setError(''); }} style={tab === 'signin' ? S.tabOn : S.tab}>Sign in</button>
+            <button onClick={() => { setTab('signup'); setError(''); }} style={tab === 'signup' ? S.tabOn : S.tab}>Create account</button>
           </div>
 
-          <h2 style={S.formTitle}>{tab === 'signin' ? 'Welcome back' : 'Create your workspace'}</h2>
-          <p style={S.formSub}>{tab === 'signin' ? 'Sign in to keep building.' : 'Spin up a new Forge workspace to build and ship apps.'}</p>
-
-          <div style={S.social}>
-            <button style={S.socialBtn} onClick={submit}><span style={{ fontWeight: 700 }}>G</span> Continue with Google</button>
-            <button style={S.socialBtn} onClick={submit}><span style={{ fontWeight: 700 }}>⌥</span> Continue with GitHub</button>
-          </div>
-          <div style={S.divider}><span style={S.dividerLine} /><span style={S.dividerTxt}>or</span><span style={S.dividerLine} /></div>
+          <h2 style={S.formTitle}>{tab === 'signin' ? 'Welcome back' : 'Create your account'}</h2>
+          <p style={S.formSub}>{tab === 'signin' ? 'Sign in to access your dashboard.' : 'Pick a username and password — stored locally on this device.'}</p>
 
           <form onSubmit={submit}>
-            {tab === 'signup' && (
-              <Field label="Workspace name">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Studio" style={S.input} />
-              </Field>
-            )}
-            <Field label="Email">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" style={S.input} required />
+            <Field label="Username">
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="yourname" autoComplete="username" style={S.input} />
             </Field>
             <Field label="Password">
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={S.input} />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={tab === 'signin' ? 'current-password' : 'new-password'} style={S.input} />
             </Field>
 
-            {tab === 'signin' && <div style={S.forgot}><a href="/login" style={S.link}>Forgot password?</a></div>}
+            {error && <div style={S.error}>⚠ {error}</div>}
 
             <button type="submit" disabled={loading} style={{ ...S.submit, opacity: loading ? 0.7 : 1 }}>
-              {loading ? 'Entering…' : tab === 'signin' ? 'Sign in →' : 'Create workspace →'}
+              {loading ? 'Entering…' : tab === 'signin' ? 'Sign in →' : 'Create account →'}
             </button>
           </form>
 
           <p style={S.switch}>
-            {tab === 'signin' ? "Don't have a workspace? " : 'Already have one? '}
-            <button onClick={() => setTab(tab === 'signin' ? 'signup' : 'signin')} style={S.switchBtn}>
+            {tab === 'signin' ? "No account yet? " : 'Already have one? '}
+            <button onClick={() => { setTab(tab === 'signin' ? 'signup' : 'signin'); setError(''); }} style={S.switchBtn}>
               {tab === 'signin' ? 'Create one' : 'Sign in'}
             </button>
           </p>
-          <p style={S.legal}>By continuing you agree to the Terms & Privacy. Demo login — no real account is created.</p>
+          <p style={S.legal}>Demo auth — your credentials are saved only in this browser's localStorage.</p>
         </div>
       </div>
     </div>
@@ -100,12 +113,7 @@ export default function Login() {
 }
 
 function Field({ label, children }: { label: string; children: any }) {
-  return (
-    <label style={S.field}>
-      <span style={S.fieldLabel}>{label}</span>
-      {children}
-    </label>
-  );
+  return (<label style={S.field}><span style={S.fieldLabel}>{label}</span>{children}</label>);
 }
 
 const CSS = `
@@ -129,25 +137,19 @@ const S: Record<string, any> = {
   check: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 999, background: 'rgba(139,92,246,.18)', color: '#c4b5fd', fontSize: 12, fontWeight: 700 },
   quote: { position: 'relative', zIndex: 2, fontSize: 14, color: '#6e7681', fontStyle: 'italic' },
   formPanel: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' },
-  formInner: { width: '100%', maxWidth: 380, transition: 'all .6s cubic-bezier(.2,.7,.2,1)' },
-  mobileBrand: { display: 'flex', alignItems: 'center', gap: 8, color: '#fff', marginBottom: 22, justifyContent: 'center' },
-  tabs: { display: 'flex', gap: 4, background: '#0f1218', border: '1px solid #21262d', padding: 4, borderRadius: 11, marginBottom: 24 },
+  glass: { width: '100%', maxWidth: 384, padding: 28, borderRadius: 18, background: 'rgba(22,27,34,0.6)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 30px 80px -30px rgba(0,0,0,.7)', transition: 'all .6s cubic-bezier(.2,.7,.2,1)' },
+  mobileBrand: { display: 'flex', alignItems: 'center', gap: 8, color: '#fff', marginBottom: 20, justifyContent: 'center' },
+  tabs: { display: 'flex', gap: 4, background: 'rgba(13,17,23,0.6)', border: '1px solid #21262d', padding: 4, borderRadius: 11, marginBottom: 22 },
   tab: { flex: 1, padding: '9px', fontSize: 13.5, border: 'none', background: 'transparent', color: '#8b949e', borderRadius: 8, cursor: 'pointer', fontWeight: 600 },
-  tabOn: { flex: 1, padding: '9px', fontSize: 13.5, border: 'none', background: '#1c2230', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 700 },
-  formTitle: { fontSize: 24, fontWeight: 800, letterSpacing: -0.5, margin: '0 0 4px' },
-  formSub: { fontSize: 14, color: '#8b949e', margin: '0 0 22px' },
-  social: { display: 'flex', flexDirection: 'column', gap: 9 },
-  socialBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, width: '100%', padding: '11px', fontSize: 14, fontWeight: 600, color: '#e6edf3', background: '#0f1218', border: '1px solid #30363d', borderRadius: 10, cursor: 'pointer' },
-  divider: { display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0' },
-  dividerLine: { flex: 1, height: 1, background: '#21262d' },
-  dividerTxt: { fontSize: 12, color: '#6e7681' },
+  tabOn: { flex: 1, padding: '9px', fontSize: 13.5, border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 700 },
+  formTitle: { fontSize: 23, fontWeight: 800, letterSpacing: -0.5, margin: '0 0 4px' },
+  formSub: { fontSize: 13.5, color: '#8b949e', margin: '0 0 22px' },
   field: { display: 'block', marginBottom: 14 },
   fieldLabel: { display: 'block', fontSize: 12.5, fontWeight: 600, color: '#adbac7', marginBottom: 6 },
-  input: { width: '100%', padding: '11px 13px', fontSize: 14, color: '#e6edf3', background: '#0f1218', border: '1px solid #30363d', borderRadius: 10, boxSizing: 'border-box', transition: 'border-color .15s, box-shadow .15s' },
-  forgot: { textAlign: 'right', marginBottom: 16, marginTop: -4 },
-  link: { fontSize: 12.5, color: '#a78bfa' },
-  submit: { width: '100%', padding: '12px', fontSize: 15, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: 10, cursor: 'pointer', marginTop: 6, boxShadow: '0 10px 30px -12px rgba(139,92,246,.7)' },
-  switch: { textAlign: 'center', fontSize: 13.5, color: '#8b949e', marginTop: 20 },
+  input: { width: '100%', padding: '11px 13px', fontSize: 14, color: '#e6edf3', background: 'rgba(15,18,24,0.8)', border: '1px solid #30363d', borderRadius: 10, boxSizing: 'border-box', transition: 'border-color .15s, box-shadow .15s' },
+  error: { fontSize: 12.5, color: '#ff9b94', background: 'rgba(248,81,73,.1)', border: '1px solid rgba(248,81,73,.3)', borderRadius: 8, padding: '8px 11px', marginBottom: 14 },
+  submit: { width: '100%', padding: '12px', fontSize: 15, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: 10, cursor: 'pointer', marginTop: 4, boxShadow: '0 10px 30px -12px rgba(139,92,246,.7)' },
+  switch: { textAlign: 'center', fontSize: 13.5, color: '#8b949e', marginTop: 18 },
   switchBtn: { background: 'none', border: 'none', color: '#a78bfa', fontWeight: 700, cursor: 'pointer', fontSize: 13.5, padding: 0 },
-  legal: { textAlign: 'center', fontSize: 11, color: '#484f58', marginTop: 16, lineHeight: 1.5 },
+  legal: { textAlign: 'center', fontSize: 11, color: '#484f58', marginTop: 14, lineHeight: 1.5 },
 };
